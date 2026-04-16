@@ -1,0 +1,18 @@
+@baseUrl = http://localhost:3001
+
+### Inventories (all)
+GET {{baseUrl}}/api/inventories
+Accept: application/json
+
+
+### Inventories (search por codigo o descripcion)
+GET {{baseUrl}}/api/inventories?q=TUBO
+Accept: application/json
+
+### Inventories (pagination)
+GET {{baseUrl}}/api/inventories?limit=10&offset=0
+Accept: application/json
+
+### Inventory detail by code
+GET {{baseUrl}}/api/inventories/004212899
+Accept: application/json
