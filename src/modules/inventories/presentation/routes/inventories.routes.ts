@@ -1,13 +1,13 @@
 import { FastifyInstance } from "fastify";
 import { InventoriesController } from "../controllers/inventories.controller";
-import { InventoriesService } from "../services/inventories.service";
-import { InventoriesRepository } from "../repositories/inventories.repository";
+import { InventoriesService } from "../../application/services/inventories.service";
+import { ProscaiInventoriesRepository } from "../../infrastructure/repositories/proscai-inventories.repository";
 
 export class InventoriesRoutes {
 
 
   static async routes(app: FastifyInstance) {
-    const repository = new InventoriesRepository()
+    const repository = new ProscaiInventoriesRepository()
     const service = new InventoriesService(repository)
     const controller = new InventoriesController(service)
 

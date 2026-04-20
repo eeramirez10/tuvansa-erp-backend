@@ -1,25 +1,23 @@
 import { RowDataPacket } from "mysql2";
-import { MySqlClient } from "../../../db/mysql";
+import { MySqlClient } from "../../../../db/mysql";
 import {
   InventoryDetailEntity,
   InventoryDetailLegacyRow,
   InventoryEntity,
   InventoryLegacyRow
-} from "../entities";
+} from "../../domain/entities";
+import {
+  FindInventoriesParams,
+  IInventoriesRepository
+} from "../../domain/repositories/inventories.repository.interface";
 
 type InventoryRow = RowDataPacket & InventoryLegacyRow;
 type InventoryDetailRow = RowDataPacket & InventoryDetailLegacyRow;
 type CountRow = RowDataPacket & { total: number };
 
-type FindAllParams = {
-  search?: string;
-  limit: number;
-  offset: number;
-};
-
 type CodeRow = RowDataPacket & { ICOD: string };
 
-export class InventoriesRepository {
+export class ProscaiInventoriesRepository implements IInventoriesRepository {
   private buildWhere(search?: string): { whereSql: string; params: unknown[] } {
     const hasSearch = Boolean(search && search.trim().length > 0);
     if (!hasSearch) return { whereSql: "", params: [] };
@@ -31,7 +29,7 @@ export class InventoriesRepository {
     };
   }
 
-  public async findAll({ search, limit, offset }: FindAllParams): Promise<InventoryEntity[]> {
+  public async findAll({ search, limit, offset }: FindInventoriesParams): Promise<InventoryEntity[]> {
     const { whereSql, params } = this.buildWhere(search);
 
     const sql = `

@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { InventoriesRoutes } from "../../modules/inventories/routes/inventories.routes";
+import { InventoriesRoutes } from "../../modules/inventories/presentation/routes/inventories.routes";
 
 
 export class AppRoutes {

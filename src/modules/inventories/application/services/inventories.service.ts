@@ -2,9 +2,9 @@ import {
   PaginatedResponseDto,
   PaginationDto,
   PaginationQuery
-} from "../../../shared/types/pagination.types";
-import { InventoryDetailEntity, InventoryEntity } from "../entities";
-import { InventoriesRepository } from "../repositories/inventories.repository";
+} from "../../../../shared/types/pagination.types";
+import { InventoryDetailEntity, InventoryEntity } from "../../domain/entities";
+import { IInventoriesRepository } from "../../domain/repositories/inventories.repository.interface";
 
 type GetInventoriesInput = PaginationQuery & {
   q?: string;
@@ -17,7 +17,7 @@ type InventoriesMeta = {
 };
 
 export class InventoriesService {
-  constructor(private readonly inventoriesRepository: InventoriesRepository) {}
+  constructor(private readonly inventoriesRepository: IInventoriesRepository) {}
 
   private normalizeSearch(raw?: string): string | undefined {
     const normalized = raw?.trim();

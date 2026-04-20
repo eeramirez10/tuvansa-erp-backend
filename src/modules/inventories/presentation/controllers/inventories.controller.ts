@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { PaginationQuery } from "../../../shared/types/pagination.types";
-import { InventoriesService } from "../services/inventories.service";
+import { PaginationQuery } from "../../../../shared/types/pagination.types";
+import { InventoriesService } from "../../application/services/inventories.service";
 
 type GetInventoriesQuery = PaginationQuery & {
   q?: string;
