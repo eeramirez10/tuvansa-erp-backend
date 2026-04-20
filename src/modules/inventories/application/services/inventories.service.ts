@@ -3,7 +3,7 @@ import {
   PaginationDto,
   PaginationQuery
 } from "../../../../shared/types/pagination.types";
-import { InventoryDetailEntity, InventoryEntity } from "../../domain/entities";
+import { InventoryDetailEntity, InventoryEntity, InventoryWarehouseEntity } from "../../domain/entities";
 import { IInventoriesRepository } from "../../domain/repositories/inventories.repository.interface";
 
 type GetInventoriesInput = PaginationQuery & {
@@ -95,5 +95,15 @@ export class InventoriesService {
     }
 
     return this.inventoriesRepository.findByCode(previousCode);
+  }
+
+  public async getInventoryWarehousesByCode(code: string): Promise<InventoryWarehouseEntity[]> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return [];
+    }
+
+    return this.inventoriesRepository.findWarehousesByCode(normalizedCode);
   }
 }

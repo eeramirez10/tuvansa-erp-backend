@@ -14,6 +14,7 @@ export class InventoriesRoutes {
     app.get("/inventories", controller.getInventories)
     app.get("/inventories/:code/next", controller.getNextInventoryByCode)
     app.get("/inventories/:code/previous", controller.getPreviousInventoryByCode)
+    app.get("/inventories/:code/warehouses", controller.getInventoryWarehousesByCode)
     app.get("/inventories/:code", controller.getInventoryByCode)
 
 

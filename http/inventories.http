@@ -16,3 +16,7 @@ Accept: application/json
 ### Inventory detail by code
 GET {{baseUrl}}/api/inventories/01100104
 Accept: application/json
+
+### Inventory warehouses by code
+GET {{baseUrl}}/api/inventories/01100104/warehouses
+Accept: application/json

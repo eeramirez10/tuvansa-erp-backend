@@ -92,4 +92,21 @@ export class InventoriesController {
       }
     });
   };
+
+  public getInventoryWarehousesByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const warehouses = await this.inventoriesService.getInventoryWarehousesByCode(request.params.code);
+
+    return reply.send({
+      data: warehouses,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: warehouses.length
+      }
+    });
+  };
 }

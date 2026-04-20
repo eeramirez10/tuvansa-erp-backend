@@ -4,7 +4,9 @@ import {
   InventoryDetailEntity,
   InventoryDetailLegacyRow,
   InventoryEntity,
-  InventoryLegacyRow
+  InventoryLegacyRow,
+  InventoryWarehouseEntity,
+  InventoryWarehouseLegacyRow
 } from "../../domain/entities";
 import {
   FindInventoriesParams,
@@ -13,6 +15,7 @@ import {
 
 type InventoryRow = RowDataPacket & InventoryLegacyRow;
 type InventoryDetailRow = RowDataPacket & InventoryDetailLegacyRow;
+type InventoryWarehouseRow = RowDataPacket & InventoryWarehouseLegacyRow;
 type CountRow = RowDataPacket & { total: number };
 
 type CodeRow = RowDataPacket & { ICOD: string };
@@ -201,6 +204,50 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
     const row = rows[0];
 
     return row ? InventoryDetailEntity.fromLegacyRow(row) : null;
+  }
+
+  public async findWarehousesByCode(code: string): Promise<InventoryWarehouseEntity[]> {
+    const sql = `
+      SELECT
+        COALESCE(fa.ALMCDNUM, 0) AS CD,
+        fa.ALMNUM AS ALM,
+        COALESCE(fc.CATDESCR, '') AS DESCRIPCION,
+        fa.ALMCANT AS CANT,
+        fa.ALMMINIMO AS MINIMO,
+        fa.ALMMAXIMO AS MAXIMO,
+        fa.ALMVTAEOL AS VEOL,
+        fa.ALMMINIMOENTDA AS MIN_TDA,
+        fa.ALMVTA AS VTA_6S,
+        fa.ALMPEDIDO AS PEDIDO,
+        fa.ALMASIGNADO AS ASIGNADO,
+        fa.ALMINVFIS AS FISICO,
+        fa.ALMFISICOINICIAL AS I_CONTEO,
+        fa.ALMDETDAS AS DE_TDS,
+        fa.ALMACTIVO AS A,
+        fa.ALMTRANSITO AS TRANSITO,
+        fa.ALMALTA AS ALTA,
+        fa.ALMULTIMAVTA AS ULT_VTA,
+        fa.ALMPRVOC AS ORD_PRV,
+        fa.ALMLOCALIZ AS LOCALIZACION,
+        fa.ALMTOTVTA AS VTA_ACUM,
+        fa.ALMVAFUTS1 AS S1,
+        fa.ALMVAFUTS2 AS S2,
+        fa.ALMVAFUTS3 AS S3,
+        fa.ALMVAFUTS4 AS S4,
+        fa.ALMVAFUTS5 AS S5,
+        fa.ALMVTAFUT6 AS S6,
+        fa.ALMPRECIO AS PRECIO,
+        fa.ALMTOTRECS AS TOT_RECS,
+        fa.ALMCURVA AS CURVA
+      FROM finv f
+      INNER JOIN falm fa ON fa.ISEQ = f.ISEQ
+      LEFT JOIN falmcat fc ON fc.CATALM = fa.ALMNUM AND fc.CATTIPO = ''
+      WHERE f.ICOD = ?
+      ORDER BY fa.ALMNUM ASC
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryWarehouseRow[]>(sql, [code]);
+    return rows.map((row) => InventoryWarehouseEntity.fromLegacyRow(row));
   }
 
   public async findNextCode(currentCode: string): Promise<string | null> {

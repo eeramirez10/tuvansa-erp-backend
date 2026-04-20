@@ -41,6 +41,29 @@ Documentar las relaciones lógicas de la base legacy (aunque no tenga llaves for
   - `PRVNOM`
   - `PRVBAJA`
 
+### 3.4 FALM (Inventario por almacén)
+- PK técnica: `ALMSEQ`
+- Llave lógica principal por producto: `ISEQ` (referencia a `FINV.ISEQ`)
+- Llaves operativas:
+  - `ALMNUM` (almacén)
+  - `ALMKEY` (legacy compuesto; no usar como join principal en API nueva)
+- Campos clave usados en modal Almacenes:
+  - `ALMCANT`, `ALMMINIMO`, `ALMMAXIMO`, `ALMVTAEOL`, `ALMMINIMOENTDA`
+  - `ALMVTA`, `ALMPEDIDO`, `ALMASIGNADO`, `ALMINVFIS`, `ALMFISICOINICIAL`
+  - `ALMDETDAS`, `ALMACTIVO`, `ALMTRANSITO`, `ALMALTA`, `ALMULTIMAVTA`
+  - `ALMPRVOC`, `ALMLOCALIZ`, `ALMTOTVTA`
+  - `ALMVAFUTS1..ALMVAFUTS5`, `ALMVTAFUT6`
+  - `ALMPRECIO`, `ALMTOTRECS`, `ALMCURVA`, `ALMCDNUM`
+
+### 3.5 FALMCAT (Catálogo de almacenes)
+- PK técnica: `CATSEQ`
+- Llave de negocio principal: `CATALM`
+- Campo de filtro funcional: `CATTIPO` (Omnis usa `CATTIPO=''` para lista base de almacenes)
+- Campos clave:
+  - `CATALM`
+  - `CATDESCR`
+  - `CATTIPO`
+
 ## 4) Relaciones lógicas confirmadas
 
 ### R-001 (CONFIRMADA)
@@ -73,6 +96,30 @@ LEFT JOIN fprv p ON p.PRVCOD = f.IPRV
 WHERE f.ICOD = ?;
 ```
 
+### R-003 (CONFIRMADA)
+- `FINV.ISEQ` -> `FALM.ISEQ`
+- Tipo: inventario por almacén del producto, join recomendado `INNER JOIN` para detalle de almacenes.
+
+Ejemplo base:
+```sql
+SELECT f.ICOD, fa.ALMNUM, fa.ALMCANT
+FROM finv f
+INNER JOIN falm fa ON fa.ISEQ = f.ISEQ
+WHERE f.ICOD = ?;
+```
+
+### R-004 (CONFIRMADA)
+- `FALM.ALMNUM` -> `FALMCAT.CATALM`
+- Tipo: catálogo descriptivo del almacén, join recomendado `LEFT JOIN`.
+- Filtro funcional legado recomendado: `FALMCAT.CATTIPO = ''`.
+
+Ejemplo base:
+```sql
+SELECT fa.ALMNUM, fc.CATDESCR
+FROM falm fa
+LEFT JOIN falmcat fc ON fc.CATALM = fa.ALMNUM AND fc.CATTIPO = '';
+```
+
 ## 5) Reglas de normalización de datos
 
 ### Fechas sentinel
@@ -83,6 +130,8 @@ Campos conocidos:
 - `FINV.IALTA`
 - `FINV.IULTVTA`
 - `FINV.IULTCPR`
+- `FALM.ALMALTA`
+- `FALM.ALMULTIMAVTA`
 
 ## 6) SQLs validados
 
@@ -227,6 +276,49 @@ LIMIT 1;
 Parámetro recomendado:
 - `[code]`
 
+### INV-007 (OK - Almacenes)
+Propósito: mapear grid del modal **Almacenes** por `ICOD` desde `FINV + FALM + FALMCAT`.
+```sql
+SELECT
+  COALESCE(fa.ALMCDNUM, 0) AS CD,
+  fa.ALMNUM AS ALM,
+  COALESCE(fc.CATDESCR, '') AS DESCRIPCION,
+  fa.ALMCANT AS CANT,
+  fa.ALMMINIMO AS MINIMO,
+  fa.ALMMAXIMO AS MAXIMO,
+  fa.ALMVTAEOL AS VEOL,
+  fa.ALMMINIMOENTDA AS MIN_TDA,
+  fa.ALMVTA AS VTA_6S,
+  fa.ALMPEDIDO AS PEDIDO,
+  fa.ALMASIGNADO AS ASIGNADO,
+  fa.ALMINVFIS AS FISICO,
+  fa.ALMFISICOINICIAL AS I_CONTEO,
+  fa.ALMDETDAS AS DE_TDS,
+  fa.ALMACTIVO AS A,
+  fa.ALMTRANSITO AS TRANSITO,
+  fa.ALMALTA AS ALTA,
+  fa.ALMULTIMAVTA AS ULT_VTA,
+  fa.ALMPRVOC AS ORD_PRV,
+  fa.ALMLOCALIZ AS LOCALIZACION,
+  fa.ALMTOTVTA AS VTA_ACUM,
+  fa.ALMVAFUTS1 AS S1,
+  fa.ALMVAFUTS2 AS S2,
+  fa.ALMVAFUTS3 AS S3,
+  fa.ALMVAFUTS4 AS S4,
+  fa.ALMVAFUTS5 AS S5,
+  fa.ALMVTAFUT6 AS S6,
+  fa.ALMPRECIO AS PRECIO,
+  fa.ALMTOTRECS AS TOT_RECS,
+  fa.ALMCURVA AS CURVA
+FROM finv f
+INNER JOIN falm fa ON fa.ISEQ = f.ISEQ
+LEFT JOIN falmcat fc ON fc.CATALM = fa.ALMNUM AND fc.CATTIPO = ''
+WHERE f.ICOD = ?
+ORDER BY fa.ALMNUM ASC;
+```
+Parámetro recomendado:
+- `[code]`
+
 ## 7) Mapeo tab Dimensiones (Omnis -> API)
 
 ### 7.1 Confirmado por notas Omnis (EINV#1)
@@ -271,12 +363,45 @@ Nota:
 - `Equivale a (factor)` -> `FINV.IUM2FACTOR`
 - `Precio` -> `FINV.IUM2PRECIO`
 
+### 7.5 Mapeo modal Almacenes
+- `CD` -> `FALM.ALMCDNUM`
+- `Alm.` -> `FALM.ALMNUM`
+- `Descripción` -> `FALMCAT.CATDESCR` (`LEFT JOIN` con `CATTIPO=''`)
+- `Cant.` -> `FALM.ALMCANT`
+- `Mín.` -> `FALM.ALMMINIMO`
+- `Máx.` -> `FALM.ALMMAXIMO`
+- `VEOL` -> `FALM.ALMVTAEOL`
+- `Min tda` -> `FALM.ALMMINIMOENTDA`
+- `Vta 6 s` -> `FALM.ALMVTA`
+- `Pedido` -> `FALM.ALMPEDIDO`
+- `Asign.` -> `FALM.ALMASIGNADO`
+- `Físico` -> `FALM.ALMINVFIS`
+- `I Conteo` -> `FALM.ALMFISICOINICIAL`
+- `De tds` -> `FALM.ALMDETDAS`
+- `A` -> `FALM.ALMACTIVO`
+- `Tránsito` -> `FALM.ALMTRANSITO`
+- `Alta` -> `FALM.ALMALTA`
+- `Ult vta` -> `FALM.ALMULTIMAVTA`
+- `Ord. Prv.` -> `FALM.ALMPRVOC`
+- `Localización` -> `FALM.ALMLOCALIZ`
+- `Vta. acum` -> `FALM.ALMTOTVTA`
+- `S1..S5` -> `FALM.ALMVAFUTS1..ALMVAFUTS5`
+- `S6` -> `FALM.ALMVTAFUT6`
+- `Precio` -> `FALM.ALMPRECIO`
+- `Tot Recs` -> `FALM.ALMTOTRECS`
+- `Curva` -> `FALM.ALMCURVA`
+
 ## 8) SQLs con error / lecciones
 
 ### ERR-001
 - Error: usar `FINV.UCOD` en lugar de `FINV.IUM`.
 - Causa: asumir nombre por Omnis UI.
 - Corrección: relación correcta es `FINV.IUM -> FUNIDAD.UCOD`.
+
+### ERR-002
+- Error: usar `FALM.ALMKEY` como join principal para API de almacenes.
+- Causa: herencia del patrón Omnis por key compuesta.
+- Corrección: en API nueva usar `FINV.ISEQ -> FALM.ISEQ` como relación principal; `ALMKEY` sólo como fallback legacy.
 
 ## 9) Reglas para migración futura (objetivo)
 Cuando se diseñe la nueva DB:
@@ -293,3 +418,4 @@ Cuando se diseñe la nueva DB:
 - 2026-04-16: INV-004 ampliado con campos completos para pantalla de Inventarios.
 - 2026-04-17: agregado INV-005 y mapeo técnico del tab Dimensiones (confirmado + inferido + pendientes).
 - 2026-04-20: agregados FPRV, relación R-002 (`FINV.IPRV -> FPRV.PRVCOD`) e INV-006 para tab Compras (Proveedor/Código).
+- 2026-04-20: agregados FALM/FALMCAT, relaciones R-003/R-004, INV-007 (modal Almacenes) y mapeo de columnas de Almacenes.
