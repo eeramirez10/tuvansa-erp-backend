@@ -24,6 +24,9 @@ Documentar las relaciones lógicas de la base legacy (aunque no tenga llaves for
   - Stock/acumulados: `ISTKACT`, `ISTKANT`, `ISTKACU`, `IPEDCLI`, `IPEDPRV`, `IPEDCOTIZ`, `IORDCOTIZ`, `ICONFIRMADO`, `IASIGNADO`, `ISTKPZS`
   - Cuentas/ubicación: `ICTA`, `ICTADEV`, `ILOCALIZ`, `IEAN`, `IUPC`
   - Fechas: `IALTA`, `IBAJA`, `IULTVTA`, `IULTCPR`
+  - Importación: `IPEDIMENTO`, `IFECHAIMPORT`, `IADUANA`, `IARANCEL`, `IARANCELEXP`, `IPORCARANC`, `INOCAPAS`
+  - Producción: `ILOTE`, `ITIEMPO`, `INECPRO`, `ITIPOTIEMPO`, `IFECHAENSAMBLE`, `IENSABLES`, `ISEGUNDAS`, `ITERCERAS`, `IREBAJAMINIMO`, `INOPRODUCTIVO`
+  - Impuestos: `ITMVTS`, `ITMREC`, `IPORCIEPES`, `IPORCRETIVA`, `IPORCRETISR`, `IPORCIVA`, `IRETIVA`, `INOIVAENIEPS`, `IDONATIVO`
 
 ### 3.2 FUNIDAD (Catálogo de unidades)
 - PK técnica: `USEQ`
@@ -315,6 +318,44 @@ INNER JOIN falm fa ON fa.ISEQ = f.ISEQ
 LEFT JOIN falmcat fc ON fc.CATALM = fa.ALMNUM AND fc.CATTIPO = ''
 WHERE f.ICOD = ?
 ORDER BY fa.ALMNUM ASC;
+```
+Parámetro recomendado:
+- `[code]`
+
+### INV-008 (OK - Importación, Producción e Impuestos)
+Propósito: mapear tabs **Importación**, **Producción** e **Impuestos** desde `FINV` en el detalle por código.
+```sql
+SELECT
+  f.ICOD,
+  f.IPEDIMENTO,
+  f.IFECHAIMPORT,
+  f.IADUANA,
+  f.IARANCEL,
+  f.IARANCELEXP,
+  f.IPORCARANC,
+  f.INOCAPAS,
+  f.ILOTE,
+  f.ITIEMPO,
+  f.INECPRO,
+  f.ITIPOTIEMPO,
+  f.IFECHAENSAMBLE,
+  f.IENSABLES,
+  f.ISEGUNDAS,
+  f.ITERCERAS,
+  f.IREBAJAMINIMO,
+  f.INOPRODUCTIVO,
+  f.ITMVTS,
+  f.ITMREC,
+  f.IPORCIEPES,
+  f.IPORCRETIVA,
+  f.IPORCRETISR,
+  f.IPORCIVA,
+  f.IRETIVA,
+  f.INOIVAENIEPS,
+  f.IDONATIVO
+FROM finv f
+WHERE f.ICOD = ?
+LIMIT 1;
 ```
 Parámetro recomendado:
 - `[code]`

@@ -77,6 +77,32 @@ export type InventoryDetailLegacyRow = {
   IMONEDA: number | string;
   ICODPRV: string;
   IPORC1: number | string;
+  IPEDIMENTO: string;
+  IFECHAIMPORT: string | Date;
+  IADUANA: string;
+  IARANCEL: string;
+  IARANCELEXP: string;
+  IPORCARANC: number | string;
+  INOCAPAS: number | string;
+  ITIPOTIEMPO: number | string;
+  ILOTE: number | string;
+  INECPRO: number | string;
+  IFECHAENSAMBLE: string | Date;
+  IENSABLES: number | string;
+  ISEGUNDAS: string;
+  ITERCERAS: string;
+  IREBAJAMINIMO: number | string;
+  INOPRODUCTIVO: number | string;
+  IPORCIEPES: number | string;
+  IPORCRETIVA: number | string;
+  IPORCRETISR: number | string;
+  IPORCIVA: number | string;
+  IRETIVA: number | string;
+  IFISCAL: number | string;
+  IDONATIVO: number | string;
+  INOIVAENIEPS: number | string;
+  ITMVTS: string;
+  ITMREC: string;
   IFINTEMPORADA: string | Date;
   ICOMPRAMINIMA: number | string;
   ICURVATMP: number | string;
@@ -207,6 +233,42 @@ type InventoryDetailProps = {
 
   };
 
+  imports: {
+    dontHandleLayers: boolean;
+    pedimento: string;
+    importDate: InventoryDate;
+    customsOffice: string;
+    tariff: string;
+    tariffOption: string;
+    tariffPercent: number | null;
+    tariffAmount: number | null;
+  };
+
+  production: {
+    variableTime: boolean;
+    lot: number | null;
+    timeDays: number | null;
+    capacity: number | null;
+    assemblyAt: InventoryDate;
+    assemblyMode: number | null;
+    secondCode: string;
+    thirdCode: string;
+    reduceMinimumsWithOrders: boolean;
+    unproductiveTimeSams: boolean;
+  };
+
+  taxes: {
+    salesProfile: string;
+    purchasesProfile: string;
+    iepsPercent: number | null;
+    retentionIvaPercent: number | null;
+    retentionIsrPercent: number | null;
+    ivaType: "general" | "exempt" | "zero" | "unknown";
+    retentionType: "none" | "freight" | "rent" | "fee" | "unknown";
+    dontChargeIvaOnIeps: boolean;
+    donative: boolean;
+  };
+
 
   accounts: {
     primary: string;
@@ -329,6 +391,42 @@ export class InventoryDetailEntity {
     equivalentUnit: string;
   };
 
+  public readonly imports: {
+    dontHandleLayers: boolean;
+    pedimento: string;
+    importDate: InventoryDate;
+    customsOffice: string;
+    tariff: string;
+    tariffOption: string;
+    tariffPercent: number | null;
+    tariffAmount: number | null;
+  };
+
+  public readonly production: {
+    variableTime: boolean;
+    lot: number | null;
+    timeDays: number | null;
+    capacity: number | null;
+    assemblyAt: InventoryDate;
+    assemblyMode: number | null;
+    secondCode: string;
+    thirdCode: string;
+    reduceMinimumsWithOrders: boolean;
+    unproductiveTimeSams: boolean;
+  };
+
+  public readonly taxes: {
+    salesProfile: string;
+    purchasesProfile: string;
+    iepsPercent: number | null;
+    retentionIvaPercent: number | null;
+    retentionIsrPercent: number | null;
+    ivaType: "general" | "exempt" | "zero" | "unknown";
+    retentionType: "none" | "freight" | "rent" | "fee" | "unknown";
+    dontChargeIvaOnIeps: boolean;
+    donative: boolean;
+  };
+
 
   public readonly accounts: {
     primary: string;
@@ -349,9 +447,12 @@ export class InventoryDetailEntity {
     this.accumulators = props.accumulators;
     this.storage = props.storage;
     this.dimensions = props.dimensions;
+    this.imports = props.imports;
+    this.production = props.production;
+    this.taxes = props.taxes;
     this.accounts = props.accounts;
     this.indicators = props.indicators;
-    this.purchases = props.purchases
+    this.purchases = props.purchases;
   }
 
   private static normalizeLegacyDate(value: string | Date | null | undefined): InventoryDate {
@@ -383,6 +484,27 @@ export class InventoryDetailEntity {
   private static asBoolean(value: number | string | null | undefined): boolean {
     const parsed = InventoryDetailEntity.asNumber(value);
     return parsed !== null && parsed !== 0;
+  }
+
+  private static asIvaType(
+    value: number | string | null | undefined
+  ): "general" | "exempt" | "zero" | "unknown" {
+    const parsed = InventoryDetailEntity.asNumber(value);
+    if (parsed === 0) return "general";
+    if (parsed === 1) return "exempt";
+    if (parsed === 2) return "zero";
+    return "unknown";
+  }
+
+  private static asRetentionType(
+    value: number | string | null | undefined
+  ): "none" | "freight" | "rent" | "fee" | "unknown" {
+    const parsed = InventoryDetailEntity.asNumber(value);
+    if (parsed === 0) return "none";
+    if (parsed === 1) return "freight";
+    if (parsed === 2) return "rent";
+    if (parsed === 3) return "fee";
+    return "unknown";
   }
 
   public static fromLegacyRow(row: InventoryDetailLegacyRow): InventoryDetailEntity {
@@ -495,6 +617,39 @@ export class InventoryDetailEntity {
         provider: providerDisplay,
         code: InventoryDetailEntity.asString(row.ICODPRV),
 
+      },
+      imports: {
+        dontHandleLayers: InventoryDetailEntity.asBoolean(row.INOCAPAS),
+        pedimento: InventoryDetailEntity.asString(row.IPEDIMENTO),
+        importDate: InventoryDetailEntity.normalizeLegacyDate(row.IFECHAIMPORT),
+        customsOffice: InventoryDetailEntity.asString(row.IADUANA),
+        tariff: InventoryDetailEntity.asString(row.IARANCEL),
+        tariffOption: InventoryDetailEntity.asString(row.IARANCELEXP),
+        tariffPercent: InventoryDetailEntity.asNumber(row.IPORCARANC),
+        tariffAmount: InventoryDetailEntity.asNumber(row.IADVALOREM)
+      },
+      production: {
+        variableTime: InventoryDetailEntity.asBoolean(row.ITIPOTIEMPO),
+        lot: InventoryDetailEntity.asNumber(row.ILOTE),
+        timeDays: InventoryDetailEntity.asNumber(row.ITIEMPO),
+        capacity: InventoryDetailEntity.asNumber(row.INECPRO),
+        assemblyAt: InventoryDetailEntity.normalizeLegacyDate(row.IFECHAENSAMBLE),
+        assemblyMode: InventoryDetailEntity.asNumber(row.IENSABLES),
+        secondCode: InventoryDetailEntity.asString(row.ISEGUNDAS),
+        thirdCode: InventoryDetailEntity.asString(row.ITERCERAS),
+        reduceMinimumsWithOrders: InventoryDetailEntity.asBoolean(row.IREBAJAMINIMO),
+        unproductiveTimeSams: InventoryDetailEntity.asBoolean(row.INOPRODUCTIVO)
+      },
+      taxes: {
+        salesProfile: InventoryDetailEntity.asString(row.ITMVTS),
+        purchasesProfile: InventoryDetailEntity.asString(row.ITMREC),
+        iepsPercent: InventoryDetailEntity.asNumber(row.IPORCIEPES),
+        retentionIvaPercent: InventoryDetailEntity.asNumber(row.IPORCRETIVA),
+        retentionIsrPercent: InventoryDetailEntity.asNumber(row.IPORCRETISR),
+        ivaType: InventoryDetailEntity.asIvaType(row.IPORCIVA),
+        retentionType: InventoryDetailEntity.asRetentionType(row.IRETIVA),
+        dontChargeIvaOnIeps: InventoryDetailEntity.asBoolean(row.INOIVAENIEPS),
+        donative: InventoryDetailEntity.asBoolean(row.IDONATIVO)
       },
 
       accounts: {
