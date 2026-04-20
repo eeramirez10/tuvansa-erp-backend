@@ -50,9 +50,58 @@ export type InventoryDetailLegacyRow = {
   IVTA: number | string;
   IDIASSTK: number | string;
   IVTAEOL: number | string;
+
+  IVOLUMEN: number | string;
+  IPESO: number | string;
+  ICANTCAJA: number | string;
+  IEMPAQUE: number | string;
+  ILARGO: number | string;
+  IALTO: number | string;
+  IANCHO: number | string;
+  IDENSIDAD: number | string;
+  IPESOMTRO: number | string;
+  IPESOSPARAPUNTO: number | string;
+  IEDIEMP: string;
+  IEDIEMPC: number | string;
+  IZONAPICK: string;
+  ILOCALIZ2: string;
+  IDLXUNTPAK: number | string;
+  IDLXUNTCAS: number | string;
+  IDLXUNTPAL: number | string;
+  IDLXPAKUOM: string;
+  IDLXCASUOM: string;
+  IDLXPALUOM: string;
+  IVOLUMEN2: number | string;
+  ICANTCAJA2: number | string;
+
+  IMONEDA: number | string;
+  ICODPRV: string;
+  IPORC1: number | string;
+  IFINTEMPORADA: string | Date;
+  ICOMPRAMINIMA: number | string;
+  ICURVATMP: number | string;
+  IFACTORSEMTDAS: number | string;
+  IFACTORSEMBODEGA: number | string;
+  ITIEMPO: number | string;
+  IPREPACK: number | string;
+  IREDI: number | string;
+  ISOLOCD: number | string;
+  ISTATUSOTB: number | string;
+  IINACTIVO: number | string;
+  ICLIMAS: string;
+  INUMPREPACKS: number | string;
+  ILUGAR: string;
+  IUM2: string;
+  IUM2FACTOR: number | string;
+  IUM2PRECIO: number | string;
+  IPRV: string;
+  PRVNOM: string | null;
+
+
 };
 
 type InventoryDate = string | null;
+
 type InventoryDetailProps = {
   identity: {
     code: string;
@@ -101,6 +150,64 @@ type InventoryDetailProps = {
     ean: string;
     upc: string;
   };
+  dimensions: {
+    volume: number | null;
+    weight: number | null;
+    genericBox: number | null;
+    pack: number | null;
+    length: number | null;
+    height: number | null;
+    width: number | null;
+    densityKl: number | null;
+    weightKmKpz: number | null;
+    pointsPerInch: number | null;
+    ediPack: string;
+    ediQuantity: number | null;
+    picking: number | null;
+    box: number | null;
+    pallet: number | null;
+    volumeSecondary: number | null;
+    boxSecondary: number | null;
+    innerUom: string;
+    outerUom: string;
+    palletUom: string;
+    locationSecondary: string;
+    zone: string;
+  };
+
+  purchases: {
+    lastFiveCost: number | null;
+    originCurrency: number | null;
+    originCubicMeters: number | null;
+    originBox: number | null;
+    provider: string;
+    providerPercent: number | null;
+    code: string;
+    type: number | null;
+    unit: string;
+    equivalentTo: number | null;
+    price: number | null;
+    endSeasonAt: InventoryDate;
+    minimumPurchase: number | null;
+    seasonCurve: number | null;
+    storeWeeksFactor: number | null;
+    warehouseWeeksFactor: number | null;
+    supplierLeadTimeDays: number | null;
+    quantityInPrepack: number | null;
+    exportRedi: boolean;
+    onlyDistributesCd: boolean;
+    statusOtb: boolean;
+    inactive: boolean;
+    climates: string;
+    prepackCount: number | null;
+    ediPack: string;
+    ediQuantity: number | null;
+    originPlace: string;
+    equivalentUnit: string;
+
+  };
+
+
   accounts: {
     primary: string;
     secondary: string;
@@ -166,6 +273,63 @@ export class InventoryDetailEntity {
     upc: string;
   };
 
+  public readonly dimensions: {
+    volume: number | null;
+    weight: number | null;
+    genericBox: number | null;
+    pack: number | null;
+    length: number | null;
+    height: number | null;
+    width: number | null;
+    densityKl: number | null;
+    weightKmKpz: number | null;
+    pointsPerInch: number | null;
+    ediPack: string;
+    ediQuantity: number | null;
+    picking: number | null;
+    box: number | null;
+    pallet: number | null;
+    volumeSecondary: number | null;
+    boxSecondary: number | null;
+    innerUom: string;
+    outerUom: string;
+    palletUom: string;
+    locationSecondary: string;
+    zone: string;
+  };
+
+  public readonly purchases: {
+    lastFiveCost: number | null;
+    originCurrency: number | null;
+    originCubicMeters: number | null;
+    originBox: number | null;
+    provider: string;
+    providerPercent: number | null;
+    code: string;
+    type: number | null;
+    unit: string;
+    equivalentTo: number | null;
+    price: number | null;
+    endSeasonAt: InventoryDate;
+    minimumPurchase: number | null;
+    seasonCurve: number | null;
+    storeWeeksFactor: number | null;
+    warehouseWeeksFactor: number | null;
+    supplierLeadTimeDays: number | null;
+    quantityInPrepack: number | null;
+    exportRedi: boolean;
+    onlyDistributesCd: boolean;
+    statusOtb: boolean;
+    inactive: boolean;
+    climates: string;
+    prepackCount: number | null;
+    ediPack: string;
+    ediQuantity: number | null;
+    originPlace: string;
+    equivalentUnit: string;
+  };
+
+
   public readonly accounts: {
     primary: string;
     secondary: string;
@@ -184,8 +348,10 @@ export class InventoryDetailEntity {
     this.pricing = props.pricing;
     this.accumulators = props.accumulators;
     this.storage = props.storage;
+    this.dimensions = props.dimensions;
     this.accounts = props.accounts;
     this.indicators = props.indicators;
+    this.purchases = props.purchases
   }
 
   private static normalizeLegacyDate(value: string | Date | null | undefined): InventoryDate {
@@ -211,7 +377,21 @@ export class InventoryDetailEntity {
     return Number.isFinite(parsed) ? parsed : null;
   }
 
+  private static asString(value: string | null | undefined): string {
+    return value ?? "";
+  }
+  private static asBoolean(value: number | string | null | undefined): boolean {
+    const parsed = InventoryDetailEntity.asNumber(value);
+    return parsed !== null && parsed !== 0;
+  }
+
   public static fromLegacyRow(row: InventoryDetailLegacyRow): InventoryDetailEntity {
+
+    const providerCode = InventoryDetailEntity.asString(row.IPRV).trim();
+    const providerName = InventoryDetailEntity.asString(row.PRVNOM).trim();
+    const providerDisplay = providerName
+      ? `${providerCode} ${providerName}`.trim()
+      : providerCode;
     return new InventoryDetailEntity({
       identity: {
         code: row.ICOD,
@@ -260,6 +440,63 @@ export class InventoryDetailEntity {
         ean: row.IEAN,
         upc: row.IUPC
       },
+      dimensions: {
+        volume: InventoryDetailEntity.asNumber(row.IVOLUMEN),
+        weight: InventoryDetailEntity.asNumber(row.IPESO),
+        genericBox: InventoryDetailEntity.asNumber(row.ICANTCAJA),
+        pack: InventoryDetailEntity.asNumber(row.IEMPAQUE),
+        length: InventoryDetailEntity.asNumber(row.ILARGO),
+        height: InventoryDetailEntity.asNumber(row.IALTO),
+        width: InventoryDetailEntity.asNumber(row.IANCHO),
+        densityKl: InventoryDetailEntity.asNumber(row.IDENSIDAD),
+        weightKmKpz: InventoryDetailEntity.asNumber(row.IPESOMTRO),
+        pointsPerInch: InventoryDetailEntity.asNumber(row.IPESOSPARAPUNTO),
+        ediPack: InventoryDetailEntity.asString(row.IEDIEMP),
+        ediQuantity: InventoryDetailEntity.asNumber(row.IEDIEMPC),
+        picking: InventoryDetailEntity.asNumber(row.IDLXUNTPAK),
+        box: InventoryDetailEntity.asNumber(row.IDLXUNTCAS),
+        pallet: InventoryDetailEntity.asNumber(row.IDLXUNTPAL),
+        volumeSecondary: InventoryDetailEntity.asNumber(row.IVOLUMEN2),
+        boxSecondary: InventoryDetailEntity.asNumber(row.ICANTCAJA2),
+        innerUom: InventoryDetailEntity.asString(row.IDLXPAKUOM),
+        outerUom: InventoryDetailEntity.asString(row.IDLXCASUOM),
+        palletUom: InventoryDetailEntity.asString(row.IDLXPALUOM),
+        locationSecondary: InventoryDetailEntity.asString(row.ILOCALIZ2),
+        zone: InventoryDetailEntity.asString(row.IZONAPICK)
+      },
+
+      purchases: {
+        lastFiveCost: InventoryDetailEntity.asNumber(row.ILISTA5),
+        originCurrency: InventoryDetailEntity.asNumber(row.IMONEDA),
+        originCubicMeters: InventoryDetailEntity.asNumber(row.IVOLUMEN),
+        originBox: InventoryDetailEntity.asNumber(row.ICANTCAJA),
+        providerPercent: InventoryDetailEntity.asNumber(row.IPORC1),
+        type: InventoryDetailEntity.asNumber(row.ITIPO),
+        unit: row.IUM,
+        originPlace: InventoryDetailEntity.asString(row.ILUGAR),
+        equivalentUnit: InventoryDetailEntity.asString(row.IUM2),
+        equivalentTo: InventoryDetailEntity.asNumber(row.IUM2FACTOR),
+        price: InventoryDetailEntity.asNumber(row.IUM2PRECIO),
+        endSeasonAt: InventoryDetailEntity.normalizeLegacyDate(row.IFINTEMPORADA),
+        minimumPurchase: InventoryDetailEntity.asNumber(row.ICOMPRAMINIMA),
+        seasonCurve: InventoryDetailEntity.asNumber(row.ICURVATMP),
+        storeWeeksFactor: InventoryDetailEntity.asNumber(row.IFACTORSEMTDAS),
+        warehouseWeeksFactor: InventoryDetailEntity.asNumber(row.IFACTORSEMBODEGA),
+        supplierLeadTimeDays: InventoryDetailEntity.asNumber(row.ITIEMPO),
+        quantityInPrepack: InventoryDetailEntity.asNumber(row.IPREPACK),
+        exportRedi: InventoryDetailEntity.asBoolean(row.IREDI),
+        onlyDistributesCd: InventoryDetailEntity.asBoolean(row.ISOLOCD),
+        statusOtb: InventoryDetailEntity.asBoolean(row.ISTATUSOTB),
+        inactive: InventoryDetailEntity.asBoolean(row.IINACTIVO),
+        climates: InventoryDetailEntity.asString(row.ICLIMAS),
+        prepackCount: InventoryDetailEntity.asNumber(row.INUMPREPACKS),
+        ediPack: InventoryDetailEntity.asString(row.IEDIEMP),
+        ediQuantity: InventoryDetailEntity.asNumber(row.IEDIEMPC),
+        provider: providerDisplay,
+        code: InventoryDetailEntity.asString(row.ICODPRV),
+
+      },
+
       accounts: {
         primary: row.ICTA,
         secondary: row.ICTADEV,

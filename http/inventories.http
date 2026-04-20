@@ -14,5 +14,5 @@ GET {{baseUrl}}/api/inventories?limit=10&offset=0
 Accept: application/json
 
 ### Inventory detail by code
-GET {{baseUrl}}/api/inventories/004212899
+GET {{baseUrl}}/api/inventories/01100104
 Accept: application/json
