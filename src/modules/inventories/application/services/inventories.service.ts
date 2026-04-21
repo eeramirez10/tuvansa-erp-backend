@@ -5,6 +5,7 @@ import {
 } from "../../../../shared/types/pagination.types";
 import {
   InventoryAuxiliarEntity,
+  InventoryClientSaleEntity,
   InventoryClientOrderEntity,
   InventoryDetailEntity,
   InventoryEntity,
@@ -168,5 +169,29 @@ export class InventoriesService {
     }
 
     return this.inventoriesRepository.findClientOrdersByCode(normalizedCode);
+  }
+
+  public async getInventoryClientSalesByCode(
+    code: string
+  ): Promise<{ rows: InventoryClientSaleEntity[]; totalQuantity: number; totalAmount: number }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return {
+        rows: [],
+        totalQuantity: 0,
+        totalAmount: 0
+      };
+    }
+
+    const rows = await this.inventoriesRepository.findClientSalesByCode(normalizedCode);
+    const totalQuantity = rows.reduce((acc, row) => acc + (row.quantity ?? 0), 0);
+    const totalAmount = rows.reduce((acc, row) => acc + (row.amount ?? 0), 0);
+
+    return {
+      rows,
+      totalQuantity,
+      totalAmount
+    };
   }
 }

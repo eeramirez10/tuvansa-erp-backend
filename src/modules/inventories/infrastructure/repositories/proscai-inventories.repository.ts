@@ -3,6 +3,8 @@ import { MySqlClient } from "../../../../db/mysql";
 import {
   InventoryAuxiliarEntity,
   InventoryAuxiliarLegacyRow,
+  InventoryClientSaleEntity,
+  InventoryClientSaleLegacyRow,
   InventoryClientOrderEntity,
   InventoryClientOrderLegacyRow,
   InventoryDetailEntity,
@@ -22,6 +24,7 @@ type InventoryRow = RowDataPacket & InventoryLegacyRow;
 type InventoryDetailRow = RowDataPacket & InventoryDetailLegacyRow;
 type InventoryWarehouseRow = RowDataPacket & InventoryWarehouseLegacyRow;
 type InventoryAuxiliarRow = RowDataPacket & InventoryAuxiliarLegacyRow;
+type InventoryClientSaleRow = RowDataPacket & InventoryClientSaleLegacyRow;
 type InventoryClientOrderRow = RowDataPacket & InventoryClientOrderLegacyRow;
 type CountRow = RowDataPacket & { total: number };
 
@@ -436,6 +439,31 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
 
     const rows = await MySqlClient.queryReadOnly<InventoryAuxiliarRow[]>(sql, [code]);
     return rows.map((row) => InventoryAuxiliarEntity.fromLegacyRow(row));
+  }
+
+  public async findClientSalesByCode(code: string): Promise<InventoryClientSaleEntity[]> {
+    const sql = `
+      SELECT
+        COALESCE(cli.CLICOD, '') AS CODIGO,
+        COALESCE(cli.CLINOM, '') AS CLIENTE,
+        ROUND(SUM(COALESCE(ai.AICANTF, 0)), 2) AS CANTIDAD,
+        ROUND(SUM(COALESCE(ai.AICANTF, 0) * COALESCE(ai.AIPRECIO, 0)), 2) AS IMPORTE
+      FROM finv i
+      INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+      INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ
+      INNER JOIN fcli cli ON cli.CLISEQ = ai.CLISEQ
+      WHERE i.ICOD = ?
+        AND COALESCE(ai.CLISEQ, 0) <> 0
+        AND COALESCE(ai.AIMES, 0) = 1
+        AND COALESCE(d.DESFACT, 0) = 1
+        AND COALESCE(d.DOTROSTXT, '') <> 'POS'
+        AND COALESCE(d.DCONTROLPOS, 0) = 0
+      GROUP BY cli.CLICOD, cli.CLINOM
+      ORDER BY cli.CLICOD ASC
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryClientSaleRow[]>(sql, [code]);
+    return rows.map((row) => InventoryClientSaleEntity.fromLegacyRow(row));
   }
 
   public async findClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]> {

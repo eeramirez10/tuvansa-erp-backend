@@ -145,4 +145,23 @@ export class InventoriesController {
       }
     });
   };
+
+  public getInventoryClientSalesByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const sales = await this.inventoriesService.getInventoryClientSalesByCode(request.params.code);
+
+    return reply.send({
+      data: sales.rows,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: sales.rows.length,
+        totalQuantity: sales.totalQuantity,
+        totalAmount: sales.totalAmount
+      }
+    });
+  };
 }

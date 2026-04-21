@@ -15,3 +15,7 @@ export {
   InventoryClientOrderEntity,
   type InventoryClientOrderLegacyRow
 } from "./inventory-client-order.entity";
+export {
+  InventoryClientSaleEntity,
+  type InventoryClientSaleLegacyRow
+} from "./inventory-client-sale.entity";

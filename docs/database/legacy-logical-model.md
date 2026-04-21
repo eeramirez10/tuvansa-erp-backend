@@ -92,6 +92,24 @@ Documentar las relaciones lógicas de la base legacy (aunque no tenga llaves for
 - Campos clave usados en modal Pedidos por cliente:
   - `CLICOD`, `CLINOM`
 
+### 3.9 FAXINV (Afectación de inventario por documento)
+- PK técnica: `AISEQ`
+- Llaves lógicas relevantes:
+  - `ISEQ` (producto, referencia a `FINV.ISEQ`)
+  - `DSEQ` (documento, referencia a `FDOC.DSEQ`)
+  - `CLISEQ` (cliente, referencia a `FCLI.CLISEQ`)
+- Campos clave usados en modal Ventas por cliente:
+  - `AICANTF`, `AIPRECIO`, `AIMES`
+
+### 3.10 FDOC (Documentos)
+- PK técnica: `DSEQ`
+- Campos clave usados en modal Ventas por cliente:
+  - `DESFACT`, `DOTROSTXT`, `DCONTROLPOS`
+
+### 3.11 FCIA (Configuración de compañía)
+- Uso en Inventarios:
+  - `CIANOCOSTOS` (regla de costo para modal Auxiliar)
+
 ## 4) Relaciones lógicas confirmadas
 
 ### R-001 (CONFIRMADA)
@@ -180,6 +198,40 @@ Ejemplo base:
 SELECT pl.PLSEQ, c.CLICOD, c.CLINOM
 FROM fplin pl
 LEFT JOIN fcli c ON c.CLISEQ = pl.CLISEQ;
+```
+
+### R-008 (CONFIRMADA)
+- `FINV.ISEQ` -> `FAXINV.ISEQ`
+- Tipo: movimientos de inventario por producto, join recomendado `INNER JOIN`.
+
+Ejemplo base:
+```sql
+SELECT i.ICOD, ai.AISEQ, ai.AICANTF
+FROM finv i
+INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+WHERE i.ICOD = ?;
+```
+
+### R-009 (CONFIRMADA)
+- `FAXINV.DSEQ` -> `FDOC.DSEQ`
+- Tipo: documento origen del movimiento, join recomendado `INNER JOIN` en análisis de ventas.
+
+Ejemplo base:
+```sql
+SELECT ai.AISEQ, d.DSEQ, d.DESFACT
+FROM faxinv ai
+INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ;
+```
+
+### R-010 (CONFIRMADA)
+- `FAXINV.CLISEQ` -> `FCLI.CLISEQ`
+- Tipo: cliente asociado al movimiento, join recomendado `INNER JOIN` para reportes por cliente.
+
+Ejemplo base:
+```sql
+SELECT ai.AISEQ, c.CLICOD, c.CLINOM
+FROM faxinv ai
+INNER JOIN fcli c ON c.CLISEQ = ai.CLISEQ;
 ```
 
 ## 5) Reglas de normalización de datos
@@ -530,6 +582,30 @@ LIMIT 1;
 Parámetro recomendado:
 - `[code]`
 
+### INV-012 (OK - Ventas por cliente)
+Propósito: poblar el modal **Ventas por cliente** por `ICOD` agregando por cliente desde `FINV + FAXINV + FDOC + FCLI`.
+```sql
+SELECT
+  COALESCE(cli.CLICOD, '') AS CODIGO,
+  COALESCE(cli.CLINOM, '') AS CLIENTE,
+  ROUND(SUM(COALESCE(ai.AICANTF, 0)), 2) AS CANTIDAD,
+  ROUND(SUM(COALESCE(ai.AICANTF, 0) * COALESCE(ai.AIPRECIO, 0)), 2) AS IMPORTE
+FROM finv i
+INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ
+INNER JOIN fcli cli ON cli.CLISEQ = ai.CLISEQ
+WHERE i.ICOD = ?
+  AND COALESCE(ai.CLISEQ, 0) <> 0
+  AND COALESCE(ai.AIMES, 0) = 1
+  AND COALESCE(d.DESFACT, 0) = 1
+  AND COALESCE(d.DOTROSTXT, '') <> 'POS'
+  AND COALESCE(d.DCONTROLPOS, 0) = 0
+GROUP BY cli.CLICOD, cli.CLINOM
+ORDER BY cli.CLICOD ASC;
+```
+Parámetro recomendado:
+- `[code]`
+
 ## 7) Mapeo tab Dimensiones (Omnis -> API)
 
 ### 7.1 Confirmado por notas Omnis (EINV#1)
@@ -635,3 +711,4 @@ Cuando se diseñe la nueva DB:
 - 2026-04-21: INV-010 ajustado para resolver `ALM` desde `FALM.ALMNUM` (priorizando match por `ALMCDNUM` y fallback por `ALMNUM` numérico).
 - 2026-04-21: INV-010 ampliado con campo `VENCE` desde `FPENC.PEVENCE` para reutilizar endpoint en modal CT.
 - 2026-04-21: renumerado SQL de Importación/Producción/Impuestos a INV-011 para evitar colisión de IDs.
+- 2026-04-21: agregadas tablas FAXINV/FDOC/FCIA, relaciones R-008/R-009/R-010 e INV-012 para modal Ventas por cliente.

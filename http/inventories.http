@@ -28,3 +28,7 @@ Accept: application/json
 ### Inventory orders by client
 GET {{baseUrl}}/api/inventories/01300938/orders-by-client
 Accept: application/json
+
+### Inventory sales by client
+GET {{baseUrl}}/api/inventories/01300938/sales-by-client
+Accept: application/json
