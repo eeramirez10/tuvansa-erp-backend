@@ -72,6 +72,26 @@ Documentar las relaciones lógicas de la base legacy (aunque no tenga llaves for
   - `CATDESCR`
   - `CATTIPO`
 
+### 3.6 FPLIN (Líneas de pedidos/cotizaciones)
+- PK técnica: `PLSEQ`
+- Llaves lógicas relevantes:
+  - `ISEQ` (producto, referencia a `FINV.ISEQ`)
+  - `PESEQ` (encabezado de pedido, referencia a `FPENC.PESEQ`)
+  - `CLISEQ` (cliente, referencia a `FCLI.CLISEQ`)
+- Campos clave usados en modal Pedidos por cliente:
+  - `PLCANT`, `PLSURT`, `PLASIGNADO`, `PLASIGNPZAS`, `PLPRECI`, `PLSUC`, `PLFACTOR`
+
+### 3.7 FPENC (Encabezado de pedidos)
+- PK técnica: `PESEQ`
+- Campos clave usados en modal Pedidos por cliente:
+  - `PENUM`, `PENUMELLOS`, `PEDESDE`
+
+### 3.8 FCLI (Catálogo de clientes)
+- PK técnica: `CLISEQ`
+- Llave de negocio principal: `CLICOD`
+- Campos clave usados en modal Pedidos por cliente:
+  - `CLICOD`, `CLINOM`
+
 ## 4) Relaciones lógicas confirmadas
 
 ### R-001 (CONFIRMADA)
@@ -126,6 +146,40 @@ Ejemplo base:
 SELECT fa.ALMNUM, fc.CATDESCR
 FROM falm fa
 LEFT JOIN falmcat fc ON fc.CATALM = fa.ALMNUM AND fc.CATTIPO = '';
+```
+
+### R-005 (CONFIRMADA)
+- `FINV.ISEQ` -> `FPLIN.ISEQ`
+- Tipo: líneas del documento por producto, join recomendado `INNER JOIN`.
+
+Ejemplo base:
+```sql
+SELECT i.ICOD, pl.PLSEQ, pl.PLCANT
+FROM finv i
+INNER JOIN fplin pl ON pl.ISEQ = i.ISEQ
+WHERE i.ICOD = ?;
+```
+
+### R-006 (CONFIRMADA)
+- `FPLIN.PESEQ` -> `FPENC.PESEQ`
+- Tipo: relación de línea a encabezado de pedido, join recomendado `LEFT JOIN`.
+
+Ejemplo base:
+```sql
+SELECT pl.PLSEQ, p.PENUM, p.PEDESDE
+FROM fplin pl
+LEFT JOIN fpenc p ON p.PESEQ = pl.PESEQ;
+```
+
+### R-007 (CONFIRMADA)
+- `FPLIN.CLISEQ` -> `FCLI.CLISEQ`
+- Tipo: relación de línea a cliente, join recomendado `LEFT JOIN`.
+
+Ejemplo base:
+```sql
+SELECT pl.PLSEQ, c.CLICOD, c.CLINOM
+FROM fplin pl
+LEFT JOIN fcli c ON c.CLISEQ = pl.CLISEQ;
 ```
 
 ## 5) Reglas de normalización de datos
@@ -350,10 +404,95 @@ LIMIT 1;
 ```
 Parámetro recomendado:
 - `[code]`
+
+### INV-009 (OK - Auxiliar / Kardex inventario)
+Propósito: mapear movimientos del modal **Auxiliar** por `ICOD` desde `FINV + FAXINV + FDOC`, siguiendo el layout real validado en Omnis.
+```sql
+SELECT
+  COALESCE(d.DFECHA, '1900-12-31') AS FECHA,
+  COALESCE(d.DNUM, 0) AS DOCUMENTO,
+  COALESCE(ai.AITIPMV, '') AS TM,
+  CASE
+    WHEN COALESCE(c.CIANOCOSTOS, 0) = 0 THEN COALESCE(ai.AICOSTO, 0)
+    ELSE 0
+  END AS COSTO,
+  CASE
+    WHEN COALESCE(ai.AICANT, 0) >= 0 THEN ABS(COALESCE(ai.AICANT, 0))
+    ELSE 0
+  END AS ENTRADAS,
+  CASE
+    WHEN COALESCE(ai.AICANT, 0) < 0 THEN ABS(COALESCE(ai.AICANT, 0))
+    ELSE 0
+  END AS SALIDAS,
+  SUM(COALESCE(ai.AICANT, 0)) OVER (
+    PARTITION BY ai.AIALMACEN
+    ORDER BY COALESCE(d.DFECHA, '1900-12-31') ASC, ai.AISEQ ASC
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS STOCK_ALM,
+  LPAD(CAST(COALESCE(ai.AIALMACEN, 0) AS CHAR), 2, '0') AS ALM,
+  COALESCE(ai.AIPZAS, 0) AS PZAS,
+  CAST(COALESCE(d.DRUTA, 0) AS UNSIGNED) AS RUTA,
+  CASE
+    WHEN COALESCE(d.DIUSEQ, 0) > 0 THEN COALESCE(ai.AIUSEQ, 0)
+    ELSE COALESCE(d.DIUSEQ, 0)
+  END AS USR,
+  COALESCE(ai.AIREVAL, 0) AS REVAL,
+  COALESCE(d.DREFERELLOS, '') AS DREFERELLOS
+FROM finv i
+INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+LEFT JOIN fdoc d ON d.DSEQ = ai.DSEQ
+LEFT JOIN (SELECT CIANOCOSTOS FROM fcia LIMIT 1) c ON 1 = 1
+WHERE i.ICOD = ?
+ORDER BY COALESCE(d.DFECHA, '1900-12-31') DESC, ai.AISEQ DESC
+LIMIT 1500;
+```
 Parámetro recomendado:
 - `[code]`
 
-### INV-008 (OK - Importación, Producción e Impuestos)
+### INV-010 (OK - Pedidos por cliente)
+Propósito: poblar el modal **Pedidos por cliente** por `ICOD` usando `FINV + FPLIN + FPENC + FCLI` y omitir órdenes de compra (`PENUM` que inicia con `O`).
+```sql
+SELECT
+  COALESCE(c.CLICOD, '') AS CODIGO,
+  COALESCE(c.CLINOM, '') AS DESCRIPCION,
+  COALESCE(p.PEDESDE, '1900-12-31') AS FECHA_E,
+  COALESCE(p.PEVENCE, '1900-12-31') AS VENCE,
+  COALESCE(p.PENUM, 0) AS NUM,
+  COALESCE(pl.PLCANT, 0) AS PEDIDO,
+  COALESCE(pl.PLSURT, 0) AS SURTIDO,
+  (COALESCE(pl.PLCANT, 0) - COALESCE(pl.PLSURT, 0)) AS RESTA,
+  COALESCE(pl.PLASIGNADO, 0) AS ASIGNADO,
+  COALESCE(pl.PLPRECI, 0) AS PRECIO,
+  COALESCE(p.PENUMELLOS, '') AS NUM_ELLOS,
+  COALESCE(pl.PLASIGNPZAS, 0) AS PZAS,
+  COALESCE(
+    (
+      SELECT fa.ALMNUM
+      FROM falm fa
+      WHERE fa.ISEQ = i.ISEQ
+        AND (
+          fa.ALMCDNUM = COALESCE(pl.PLSUC, -1)
+          OR CAST(fa.ALMNUM AS UNSIGNED) = COALESCE(pl.PLSUC, -1)
+        )
+      ORDER BY (fa.ALMCDNUM = COALESCE(pl.PLSUC, -1)) DESC, fa.ALMNUM ASC
+      LIMIT 1
+    ),
+    ''
+  ) AS ALM,
+  COALESCE(pl.PLFACTOR, 0) AS WMS
+FROM finv i
+INNER JOIN fplin pl ON pl.ISEQ = i.ISEQ
+LEFT JOIN fpenc p ON p.PESEQ = pl.PESEQ
+LEFT JOIN fcli c ON c.CLISEQ = pl.CLISEQ
+WHERE i.ICOD = ?
+  AND (p.PENUM IS NULL OR UPPER(p.PENUM) NOT LIKE 'O%')
+ORDER BY COALESCE(p.PEDESDE, '1900-12-31') DESC, COALESCE(p.PENUM, 0) DESC, pl.PLSEQ DESC
+LIMIT 1500;
+```
+Parámetro recomendado:
+- `[code]`
+
+### INV-011 (OK - Importación, Producción e Impuestos)
 Propósito: mapear tabs **Importación**, **Producción** e **Impuestos** desde `FINV` en el detalle por código.
 ```sql
 SELECT
@@ -491,3 +630,8 @@ Cuando se diseñe la nueva DB:
 - 2026-04-17: agregado INV-005 y mapeo técnico del tab Dimensiones (confirmado + inferido + pendientes).
 - 2026-04-20: agregados FPRV, relación R-002 (`FINV.IPRV -> FPRV.PRVCOD`) e INV-006 para tab Compras (Proveedor/Código).
 - 2026-04-20: agregados FALM/FALMCAT, relaciones R-003/R-004, INV-007 (modal Almacenes) y mapeo de columnas de Almacenes.
+- 2026-04-21: ajustado INV-009 (Auxiliar) al layout real validado: `DOCUMENTO=DNUM`, `TM=AITIPMV`, costo condicionado por `FCIA.CIANOCOSTOS`, `DREFERELLOS` y orden descendente.
+- 2026-04-21: agregadas tablas FPLIN/FPENC/FCLI, relaciones R-005/R-006/R-007 e INV-010 para modal Pedidos por cliente (incluye filtro para excluir `PENUM` que inicia con `O`).
+- 2026-04-21: INV-010 ajustado para resolver `ALM` desde `FALM.ALMNUM` (priorizando match por `ALMCDNUM` y fallback por `ALMNUM` numérico).
+- 2026-04-21: INV-010 ampliado con campo `VENCE` desde `FPENC.PEVENCE` para reutilizar endpoint en modal CT.
+- 2026-04-21: renumerado SQL de Importación/Producción/Impuestos a INV-011 para evitar colisión de IDs.

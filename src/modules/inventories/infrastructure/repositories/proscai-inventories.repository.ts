@@ -1,6 +1,10 @@
 import { RowDataPacket } from "mysql2";
 import { MySqlClient } from "../../../../db/mysql";
 import {
+  InventoryAuxiliarEntity,
+  InventoryAuxiliarLegacyRow,
+  InventoryClientOrderEntity,
+  InventoryClientOrderLegacyRow,
   InventoryDetailEntity,
   InventoryDetailLegacyRow,
   InventoryEntity,
@@ -17,6 +21,8 @@ import {
 type InventoryRow = RowDataPacket & InventoryLegacyRow;
 type InventoryDetailRow = RowDataPacket & InventoryDetailLegacyRow;
 type InventoryWarehouseRow = RowDataPacket & InventoryWarehouseLegacyRow;
+type InventoryAuxiliarRow = RowDataPacket & InventoryAuxiliarLegacyRow;
+type InventoryClientOrderRow = RowDataPacket & InventoryClientOrderLegacyRow;
 type CountRow = RowDataPacket & { total: number };
 
 type CodeRow = RowDataPacket & { ICOD: string };
@@ -385,6 +391,95 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
 
     const rows = await MySqlClient.queryReadOnly<InventoryWarehouseRow[]>(sql, [code]);
     return rows.map((row) => InventoryWarehouseEntity.fromLegacyRow(row));
+  }
+
+  public async findAuxiliarByCode(code: string): Promise<InventoryAuxiliarEntity[]> {
+    const sql = `
+      SELECT
+        COALESCE(d.DFECHA, '1900-12-31') AS FECHA,
+        COALESCE(CAST(d.DNUM AS CHAR), '') AS DOCUMENTO,
+        COALESCE(CAST(ai.AITIPMV AS CHAR), '') AS TM,
+        CASE
+          WHEN COALESCE(c.CIANOCOSTOS, 0) = 0 THEN COALESCE(ai.AICOSTO, 0)
+          ELSE 0
+        END AS COSTO,
+        CASE
+          WHEN COALESCE(ai.AICANT, 0) > 0 THEN COALESCE(ai.AICANT, 0)
+          ELSE 0
+        END AS ENTRADAS,
+        CASE
+          WHEN COALESCE(ai.AICANT, 0) < 0 THEN ABS(COALESCE(ai.AICANT, 0))
+          ELSE 0
+        END AS SALIDAS,
+        SUM(COALESCE(ai.AICANT, 0)) OVER (
+          PARTITION BY ai.AIALMACEN
+          ORDER BY COALESCE(d.DFECHA, '1900-12-31') ASC, ai.AISEQ ASC, ai.DSEQ ASC
+          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS STOCK,
+        LPAD(CAST(COALESCE(ai.AIALMACEN, 0) AS CHAR), 2, '0') AS ALM,
+        COALESCE(ai.AIPZAS, 0) AS PZAS,
+        CAST(COALESCE(d.DRUTA, 0) AS UNSIGNED) AS RUTA,
+        CASE
+          WHEN COALESCE(d.DIUSEQ, 0) > 0 THEN COALESCE(ai.AIUSEQ, 0)
+          ELSE COALESCE(d.DIUSEQ, 0)
+        END AS USR,
+        COALESCE(ai.AIREVAL, 0) AS REVAL,
+        COALESCE(d.DREFERELLOS, '') AS REFERENCIA
+      FROM finv i
+      INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+      LEFT JOIN fdoc d ON d.DSEQ = ai.DSEQ
+      LEFT JOIN (SELECT CIANOCOSTOS FROM fcia LIMIT 1) c ON 1 = 1
+      WHERE i.ICOD = ?
+      ORDER BY COALESCE(d.DFECHA, '1900-12-31') DESC, ai.AISEQ DESC, ai.DSEQ DESC
+      LIMIT 1500
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryAuxiliarRow[]>(sql, [code]);
+    return rows.map((row) => InventoryAuxiliarEntity.fromLegacyRow(row));
+  }
+
+  public async findClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]> {
+    const sql = `
+      SELECT
+        COALESCE(c.CLICOD, '') AS CODIGO,
+        COALESCE(c.CLINOM, '') AS DESCRIPCION,
+        COALESCE(p.PEDESDE, '1900-12-31') AS FECHA_E,
+        COALESCE(p.PEVENCE, '1900-12-31') AS VENCE,
+        COALESCE(p.PENUM, 0) AS NUM,
+        COALESCE(pl.PLCANT, 0) AS PEDIDO,
+        COALESCE(pl.PLSURT, 0) AS SURTIDO,
+        (COALESCE(pl.PLCANT, 0) - COALESCE(pl.PLSURT, 0)) AS RESTA,
+        COALESCE(pl.PLASIGNADO, 0) AS ASIGNADO,
+        COALESCE(pl.PLPRECI, 0) AS PRECIO,
+        COALESCE(p.PENUMELLOS, '') AS NUM_ELLOS,
+        COALESCE(pl.PLASIGNPZAS, 0) AS PZAS,
+        COALESCE(
+          (
+            SELECT fa.ALMNUM
+            FROM falm fa
+            WHERE fa.ISEQ = i.ISEQ
+              AND (
+                fa.ALMCDNUM = COALESCE(pl.PLSUC, -1)
+                OR CAST(fa.ALMNUM AS UNSIGNED) = COALESCE(pl.PLSUC, -1)
+              )
+            ORDER BY (fa.ALMCDNUM = COALESCE(pl.PLSUC, -1)) DESC, fa.ALMNUM ASC
+            LIMIT 1
+          ),
+          ''
+        ) AS ALM,
+        COALESCE(pl.PLFACTOR, 0) AS WMS
+      FROM finv i
+      INNER JOIN fplin pl ON pl.ISEQ = i.ISEQ
+      LEFT JOIN fpenc p ON p.PESEQ = pl.PESEQ
+      LEFT JOIN fcli c ON c.CLISEQ = pl.CLISEQ
+      WHERE i.ICOD = ?
+        AND (p.PENUM IS NULL OR UPPER(p.PENUM) NOT LIKE 'O%')
+      ORDER BY COALESCE(p.PEDESDE, '1900-12-31') DESC, COALESCE(p.PENUM, 0) DESC, pl.PLSEQ DESC
+      LIMIT 1500
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryClientOrderRow[]>(sql, [code]);
+    return rows.map((row) => InventoryClientOrderEntity.fromLegacyRow(row));
   }
 
   public async findNextCode(currentCode: string): Promise<string | null> {

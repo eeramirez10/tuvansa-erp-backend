@@ -3,7 +3,13 @@ import {
   PaginationDto,
   PaginationQuery
 } from "../../../../shared/types/pagination.types";
-import { InventoryDetailEntity, InventoryEntity, InventoryWarehouseEntity } from "../../domain/entities";
+import {
+  InventoryAuxiliarEntity,
+  InventoryClientOrderEntity,
+  InventoryDetailEntity,
+  InventoryEntity,
+  InventoryWarehouseEntity
+} from "../../domain/entities";
 import {
   IInventoriesRepository,
   InventorySearchBy
@@ -119,5 +125,48 @@ export class InventoriesService {
     }
 
     return this.inventoriesRepository.findWarehousesByCode(normalizedCode);
+  }
+
+  public async getInventoryAuxiliarByCode(
+    code: string
+  ): Promise<{ rows: InventoryAuxiliarEntity[]; stockPrevious: number }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return {
+        rows: [],
+        stockPrevious: 0
+      };
+    }
+
+    const rows = await this.inventoriesRepository.findAuxiliarByCode(normalizedCode);
+    const firstRow = rows[0];
+
+    if (!firstRow) {
+      return {
+        rows,
+        stockPrevious: 0
+      };
+    }
+
+    const stock = firstRow.stock ?? 0;
+    const entries = firstRow.entries ?? 0;
+    const exits = firstRow.exits ?? 0;
+    const stockPrevious = stock - entries + exits;
+
+    return {
+      rows,
+      stockPrevious
+    };
+  }
+
+  public async getInventoryClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return [];
+    }
+
+    return this.inventoriesRepository.findClientOrdersByCode(normalizedCode);
   }
 }

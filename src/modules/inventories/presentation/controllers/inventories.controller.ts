@@ -110,4 +110,39 @@ export class InventoriesController {
       }
     });
   };
+
+  public getInventoryAuxiliarByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const auxiliar = await this.inventoriesService.getInventoryAuxiliarByCode(request.params.code);
+
+    return reply.send({
+      data: auxiliar.rows,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: auxiliar.rows.length,
+        stockPrevious: auxiliar.stockPrevious
+      }
+    });
+  };
+
+  public getInventoryClientOrdersByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const orders = await this.inventoriesService.getInventoryClientOrdersByCode(request.params.code);
+
+    return reply.send({
+      data: orders,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: orders.length
+      }
+    });
+  };
 }

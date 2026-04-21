@@ -7,3 +7,11 @@ export {
   InventoryWarehouseEntity,
   type InventoryWarehouseLegacyRow
 } from "./inventory-warehouse.entity";
+export {
+  InventoryAuxiliarEntity,
+  type InventoryAuxiliarLegacyRow
+} from "./inventory-auxiliar.entity";
+export {
+  InventoryClientOrderEntity,
+  type InventoryClientOrderLegacyRow
+} from "./inventory-client-order.entity";

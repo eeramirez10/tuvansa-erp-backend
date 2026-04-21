@@ -20,3 +20,11 @@ Accept: application/json
 ### Inventory warehouses by code
 GET {{baseUrl}}/api/inventories/01100104/warehouses
 Accept: application/json
+
+### Inventory auxiliar by code
+GET {{baseUrl}}/api/inventories/01300938/auxiliar
+Accept: application/json
+
+### Inventory orders by client
+GET {{baseUrl}}/api/inventories/01300938/orders-by-client
+Accept: application/json
