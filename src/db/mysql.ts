@@ -23,7 +23,9 @@ export class MySqlClient {
         password: Env.values.DB_PASSWORD,
         connectionLimit: Env.values.DB_CONNECTION_LIMIT,
         waitForConnections: true,
-        queueLimit: 0,
+        queueLimit: Env.values.DB_QUEUE_LIMIT,
+        enableKeepAlive: Env.values.DB_ENABLE_KEEP_ALIVE,
+        keepAliveInitialDelay: Env.values.DB_KEEP_ALIVE_INITIAL_DELAY_MS,
         connectTimeout: Env.values.DB_QUERY_TIMEOUT_MS,
         timezone: "Z"
       });
@@ -40,7 +42,13 @@ export class MySqlClient {
       throw new Error("Only read-only queries are allowed");
     }
 
-    const [rows] = await MySqlClient.getPool().query<T>(sql, params);
+    const [rows] = await MySqlClient.getPool().query<T>(
+      {
+        sql,
+        timeout: Env.values.DB_QUERY_TIMEOUT_MS
+      },
+      params
+    );
     return rows;
   }
 

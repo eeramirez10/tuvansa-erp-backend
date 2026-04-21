@@ -4,10 +4,14 @@ import {
   PaginationQuery
 } from "../../../../shared/types/pagination.types";
 import { InventoryDetailEntity, InventoryEntity, InventoryWarehouseEntity } from "../../domain/entities";
-import { IInventoriesRepository } from "../../domain/repositories/inventories.repository.interface";
+import {
+  IInventoriesRepository,
+  InventorySearchBy
+} from "../../domain/repositories/inventories.repository.interface";
 
 type GetInventoriesInput = PaginationQuery & {
   q?: string;
+  searchBy?: string;
 };
 
 type InventoriesMeta = {
@@ -24,6 +28,14 @@ export class InventoriesService {
     return normalized ? normalized : undefined;
   }
 
+  private normalizeSearchBy(raw?: string): InventorySearchBy {
+    if (raw === "code" || raw === "description" || raw === "auto") {
+      return raw;
+    }
+
+    return "auto";
+  }
+
   public async getInventories(
     input: GetInventoriesInput
   ): Promise<PaginatedResponseDto<InventoryEntity, InventoriesMeta>> {
@@ -33,14 +45,16 @@ export class InventoriesService {
     });
 
     const search = this.normalizeSearch(input.q);
+    const searchBy = this.normalizeSearchBy(input.searchBy);
 
     const [inventories, total] = await Promise.all([
       this.inventoriesRepository.findAll({
         search,
+        searchBy,
         limit: pagination.limit,
         offset: pagination.offset
       }),
-      this.inventoriesRepository.countAll(search)
+      this.inventoriesRepository.countAll(search, searchBy)
     ]);
 
     return new PaginatedResponseDto<InventoryEntity, InventoriesMeta>(

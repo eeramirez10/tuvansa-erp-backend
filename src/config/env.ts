@@ -21,6 +21,9 @@ export class Env {
       DB_USER: z.string().min(1),
       DB_PASSWORD: z.string().min(1),
       DB_CONNECTION_LIMIT: z.coerce.number().int().positive().default(10),
+      DB_QUEUE_LIMIT: z.coerce.number().int().nonnegative().default(100),
+      DB_ENABLE_KEEP_ALIVE: z.string().default("true").transform((v) => v === "true"),
+      DB_KEEP_ALIVE_INITIAL_DELAY_MS: z.coerce.number().int().nonnegative().default(0),
       DB_QUERY_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
       DB_READONLY: z.string().default("true").transform((v) => v === "true")
     });

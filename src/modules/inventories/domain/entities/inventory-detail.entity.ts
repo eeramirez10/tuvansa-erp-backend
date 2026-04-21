@@ -103,6 +103,84 @@ export type InventoryDetailLegacyRow = {
   INOIVAENIEPS: number | string;
   ITMVTS: string;
   ITMREC: string;
+  ICOMPOS: string;
+  ITVP: number | string;
+  ICONTROLPZAS: number | string;
+  IFRACCIONABLE: number | string;
+  IUSEQ: number | string;
+  IBODEGA: number | string;
+  IPROXRECEP: string | Date;
+  ITRANSITO: number | string;
+  IFISICOINICIAL: number | string;
+  IFECHACAMBIO: string | Date;
+  IFECHACAMBIOPR: string | Date;
+  IWEBPEDIDOS: number | string;
+  IPRIMERVTAPOS: string | Date;
+  INVFIS: number | string;
+  IRENGLON: string;
+  IRAIZ: string;
+  ICOLOREXT: string;
+  ICOLOR: string;
+  IPORCOMISION: number | string;
+  IFIJOIEPS: number | string;
+  IOFERDESDE: string | Date;
+  IOFERHASTA: string | Date;
+  IMINIMOHASTA: string | Date;
+  IDESCTOMON: number | string;
+  IDESCTOPOS: number | string;
+  ILISTA7: number | string;
+  ILISTA8: number | string;
+  ILISTA9: number | string;
+  ILISTA10: number | string;
+  ILISTA11: number | string;
+  ILISTA12: number | string;
+  ILISTA13: number | string;
+  ILISTA14: number | string;
+  ILISTA15: number | string;
+  ILISTA16: number | string;
+  ILISTA17: number | string;
+  ILISTA18: number | string;
+  IMONEDA4: number | string;
+  IMONEDA5: number | string;
+  IMONEDA6: number | string;
+  IMONEDA7: number | string;
+  IMONEDA8: number | string;
+  IMONEDA9: number | string;
+  IMONEDA10: number | string;
+  IMONEDA11: number | string;
+  IMONEDA12: number | string;
+  IMONEDA13: number | string;
+  IMONEDA14: number | string;
+  IMONEDA15: number | string;
+  IMONEDA16: number | string;
+  IMONEDA17: number | string;
+  IMONEDA18: number | string;
+  ICCPMPTIPO: number | string;
+  ICCPMPCLAVE: string;
+  ICCPMPEMBALAJE: string;
+  IFACTORCCE: number | string;
+  IVARIOS1: number | string;
+  IVARIOS2: number | string;
+  IVARIOS3: number | string;
+  IVARIOS4: number | string;
+  IVARIOS5: number | string;
+  IVARIOS6: number | string;
+  IVARIOS7: number | string;
+  IVARIOS8: number | string;
+  IVARIOS9: number | string;
+  IVARIOS10: number | string;
+  IVARIOS11: number | string;
+  IVARIOS12: number | string;
+  IVARIOS13: number | string;
+  IVARIOS14: number | string;
+  IVARIOS15: number | string;
+  IVARIOS16: number | string;
+  IVARIOS17: number | string;
+  IVARIOS18: number | string;
+  IVARIOS19: number | string;
+  IVARIOS20: number | string;
+  IVARIOS21: number | string;
+  IVARIOS22: number | string;
   IFINTEMPORADA: string | Date;
   ICOMPRAMINIMA: number | string;
   ICURVATMP: number | string;
@@ -269,6 +347,56 @@ type InventoryDetailProps = {
     donative: boolean;
   };
 
+  others: {
+    options: {
+      composition: string;
+      virtualStore: boolean;
+      inactiveForPurchases: boolean;
+      controlByPieces: boolean;
+      fractionable: boolean;
+      lastChangedBy: number | null;
+      warehouse: number | null;
+      nextReceptionAt: InventoryDate;
+      transit: number | null;
+      physicalInitial: number | null;
+      lastChangedAt: InventoryDate;
+      list123ChangedAt: InventoryDate;
+      unsupplied: number | null;
+      firstPosSaleAt: InventoryDate;
+      countInventory: number | null;
+      row: string;
+      rootCode: string;
+      color: string;
+    };
+    prices: {
+      commissionPercent: number | null;
+      iepsPercent: number | null;
+      fixedIepsPercent: number | null;
+      offerFrom: InventoryDate;
+      offerTo: InventoryDate;
+      minUntil: InventoryDate;
+      walletPercent: number | null;
+      lists: Array<{
+        list: number;
+        price: number | null;
+        currency: number | null;
+        percent: number | null;
+      }>;
+    };
+    exportData: {
+      tariff: string;
+      factor: number | null;
+    };
+    ccp: {
+      materialDangerousType: number | null;
+      hazardousKey: string;
+      packagingKey: string;
+    };
+    vars: {
+      values: Array<number | null>;
+    };
+  };
+
 
   accounts: {
     primary: string;
@@ -427,6 +555,56 @@ export class InventoryDetailEntity {
     donative: boolean;
   };
 
+  public readonly others: {
+    options: {
+      composition: string;
+      virtualStore: boolean;
+      inactiveForPurchases: boolean;
+      controlByPieces: boolean;
+      fractionable: boolean;
+      lastChangedBy: number | null;
+      warehouse: number | null;
+      nextReceptionAt: InventoryDate;
+      transit: number | null;
+      physicalInitial: number | null;
+      lastChangedAt: InventoryDate;
+      list123ChangedAt: InventoryDate;
+      unsupplied: number | null;
+      firstPosSaleAt: InventoryDate;
+      countInventory: number | null;
+      row: string;
+      rootCode: string;
+      color: string;
+    };
+    prices: {
+      commissionPercent: number | null;
+      iepsPercent: number | null;
+      fixedIepsPercent: number | null;
+      offerFrom: InventoryDate;
+      offerTo: InventoryDate;
+      minUntil: InventoryDate;
+      walletPercent: number | null;
+      lists: Array<{
+        list: number;
+        price: number | null;
+        currency: number | null;
+        percent: number | null;
+      }>;
+    };
+    exportData: {
+      tariff: string;
+      factor: number | null;
+    };
+    ccp: {
+      materialDangerousType: number | null;
+      hazardousKey: string;
+      packagingKey: string;
+    };
+    vars: {
+      values: Array<number | null>;
+    };
+  };
+
 
   public readonly accounts: {
     primary: string;
@@ -450,6 +628,7 @@ export class InventoryDetailEntity {
     this.imports = props.imports;
     this.production = props.production;
     this.taxes = props.taxes;
+    this.others = props.others;
     this.accounts = props.accounts;
     this.indicators = props.indicators;
     this.purchases = props.purchases;
@@ -650,6 +829,89 @@ export class InventoryDetailEntity {
         retentionType: InventoryDetailEntity.asRetentionType(row.IRETIVA),
         dontChargeIvaOnIeps: InventoryDetailEntity.asBoolean(row.INOIVAENIEPS),
         donative: InventoryDetailEntity.asBoolean(row.IDONATIVO)
+      },
+      others: {
+        options: {
+          composition: InventoryDetailEntity.asString(row.ICOMPOS),
+          virtualStore: InventoryDetailEntity.asBoolean(row.ITVP),
+          inactiveForPurchases: InventoryDetailEntity.asBoolean(row.IINACTIVO),
+          controlByPieces: InventoryDetailEntity.asBoolean(row.ICONTROLPZAS),
+          fractionable: InventoryDetailEntity.asBoolean(row.IFRACCIONABLE),
+          lastChangedBy: InventoryDetailEntity.asNumber(row.IUSEQ),
+          warehouse: InventoryDetailEntity.asNumber(row.IBODEGA),
+          nextReceptionAt: InventoryDetailEntity.normalizeLegacyDate(row.IPROXRECEP),
+          transit: InventoryDetailEntity.asNumber(row.ITRANSITO),
+          physicalInitial: InventoryDetailEntity.asNumber(row.IFISICOINICIAL),
+          lastChangedAt: InventoryDetailEntity.normalizeLegacyDate(row.IFECHACAMBIO),
+          list123ChangedAt: InventoryDetailEntity.normalizeLegacyDate(row.IFECHACAMBIOPR),
+          unsupplied: InventoryDetailEntity.asNumber(row.IWEBPEDIDOS),
+          firstPosSaleAt: InventoryDetailEntity.normalizeLegacyDate(row.IPRIMERVTAPOS),
+          countInventory: InventoryDetailEntity.asNumber(row.INVFIS),
+          row: InventoryDetailEntity.asString(row.IRENGLON),
+          rootCode: InventoryDetailEntity.asString(row.IRAIZ),
+          color: InventoryDetailEntity.asString(row.ICOLOREXT || row.ICOLOR)
+        },
+        prices: {
+          commissionPercent: InventoryDetailEntity.asNumber(row.IPORCOMISION),
+          iepsPercent: InventoryDetailEntity.asNumber(row.IPORCIEPES),
+          fixedIepsPercent: InventoryDetailEntity.asNumber(row.IFIJOIEPS),
+          offerFrom: InventoryDetailEntity.normalizeLegacyDate(row.IOFERDESDE),
+          offerTo: InventoryDetailEntity.normalizeLegacyDate(row.IOFERHASTA),
+          minUntil: InventoryDetailEntity.normalizeLegacyDate(row.IMINIMOHASTA),
+          walletPercent: InventoryDetailEntity.asNumber(row.IDESCTOMON),
+          lists: [
+            { list: 4, price: InventoryDetailEntity.asNumber(row.ILISTA4), currency: InventoryDetailEntity.asNumber(row.IMONEDA4), percent: null },
+            { list: 5, price: InventoryDetailEntity.asNumber(row.ILISTA5), currency: InventoryDetailEntity.asNumber(row.IMONEDA5), percent: null },
+            { list: 6, price: InventoryDetailEntity.asNumber(row.ILISTA6), currency: InventoryDetailEntity.asNumber(row.IMONEDA6), percent: null },
+            { list: 7, price: InventoryDetailEntity.asNumber(row.ILISTA7), currency: InventoryDetailEntity.asNumber(row.IMONEDA7), percent: null },
+            { list: 8, price: InventoryDetailEntity.asNumber(row.ILISTA8), currency: InventoryDetailEntity.asNumber(row.IMONEDA8), percent: null },
+            { list: 9, price: InventoryDetailEntity.asNumber(row.ILISTA9), currency: InventoryDetailEntity.asNumber(row.IMONEDA9), percent: null },
+            { list: 10, price: InventoryDetailEntity.asNumber(row.ILISTA10), currency: InventoryDetailEntity.asNumber(row.IMONEDA10), percent: null },
+            { list: 11, price: InventoryDetailEntity.asNumber(row.ILISTA11), currency: InventoryDetailEntity.asNumber(row.IMONEDA11), percent: null },
+            { list: 12, price: InventoryDetailEntity.asNumber(row.ILISTA12), currency: InventoryDetailEntity.asNumber(row.IMONEDA12), percent: null },
+            { list: 13, price: InventoryDetailEntity.asNumber(row.ILISTA13), currency: InventoryDetailEntity.asNumber(row.IMONEDA13), percent: null },
+            { list: 14, price: InventoryDetailEntity.asNumber(row.ILISTA14), currency: InventoryDetailEntity.asNumber(row.IMONEDA14), percent: null },
+            { list: 15, price: InventoryDetailEntity.asNumber(row.ILISTA15), currency: InventoryDetailEntity.asNumber(row.IMONEDA15), percent: null },
+            { list: 16, price: InventoryDetailEntity.asNumber(row.ILISTA16), currency: InventoryDetailEntity.asNumber(row.IMONEDA16), percent: null },
+            { list: 17, price: InventoryDetailEntity.asNumber(row.ILISTA17), currency: InventoryDetailEntity.asNumber(row.IMONEDA17), percent: null },
+            { list: 18, price: InventoryDetailEntity.asNumber(row.ILISTA18), currency: InventoryDetailEntity.asNumber(row.IMONEDA18), percent: null }
+          ]
+        },
+        exportData: {
+          tariff: InventoryDetailEntity.asString(row.IARANCELEXP),
+          factor: InventoryDetailEntity.asNumber(row.IFACTORCCE)
+        },
+        ccp: {
+          materialDangerousType: InventoryDetailEntity.asNumber(row.ICCPMPTIPO),
+          hazardousKey: InventoryDetailEntity.asString(row.ICCPMPCLAVE),
+          packagingKey: InventoryDetailEntity.asString(row.ICCPMPEMBALAJE)
+        },
+        vars: {
+          values: [
+            InventoryDetailEntity.asNumber(row.IVARIOS1),
+            InventoryDetailEntity.asNumber(row.IVARIOS2),
+            InventoryDetailEntity.asNumber(row.IVARIOS3),
+            InventoryDetailEntity.asNumber(row.IVARIOS4),
+            InventoryDetailEntity.asNumber(row.IVARIOS5),
+            InventoryDetailEntity.asNumber(row.IVARIOS6),
+            InventoryDetailEntity.asNumber(row.IVARIOS7),
+            InventoryDetailEntity.asNumber(row.IVARIOS8),
+            InventoryDetailEntity.asNumber(row.IVARIOS9),
+            InventoryDetailEntity.asNumber(row.IVARIOS10),
+            InventoryDetailEntity.asNumber(row.IVARIOS11),
+            InventoryDetailEntity.asNumber(row.IVARIOS12),
+            InventoryDetailEntity.asNumber(row.IVARIOS13),
+            InventoryDetailEntity.asNumber(row.IVARIOS14),
+            InventoryDetailEntity.asNumber(row.IVARIOS15),
+            InventoryDetailEntity.asNumber(row.IVARIOS16),
+            InventoryDetailEntity.asNumber(row.IVARIOS17),
+            InventoryDetailEntity.asNumber(row.IVARIOS18),
+            InventoryDetailEntity.asNumber(row.IVARIOS19),
+            InventoryDetailEntity.asNumber(row.IVARIOS20),
+            InventoryDetailEntity.asNumber(row.IVARIOS21),
+            InventoryDetailEntity.asNumber(row.IVARIOS22)
+          ]
+        }
       },
 
       accounts: {

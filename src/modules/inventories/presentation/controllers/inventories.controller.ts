@@ -4,6 +4,7 @@ import { InventoriesService } from "../../application/services/inventories.servi
 
 type GetInventoriesQuery = PaginationQuery & {
   q?: string;
+  searchBy?: "auto" | "code" | "description";
 };
 
 type GetInventoryByCodeParams = {

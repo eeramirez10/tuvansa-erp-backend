@@ -10,7 +10,8 @@ import {
 } from "../../domain/entities";
 import {
   FindInventoriesParams,
-  IInventoriesRepository
+  IInventoriesRepository,
+  InventorySearchBy
 } from "../../domain/repositories/inventories.repository.interface";
 
 type InventoryRow = RowDataPacket & InventoryLegacyRow;
@@ -21,19 +22,47 @@ type CountRow = RowDataPacket & { total: number };
 type CodeRow = RowDataPacket & { ICOD: string };
 
 export class ProscaiInventoriesRepository implements IInventoriesRepository {
-  private buildWhere(search?: string): { whereSql: string; params: unknown[] } {
-    const hasSearch = Boolean(search && search.trim().length > 0);
-    if (!hasSearch) return { whereSql: "", params: [] };
+  private buildWhere(
+    search?: string,
+    searchBy: InventorySearchBy = "auto"
+  ): { whereSql: string; params: unknown[]; normalizedSearch?: string } {
+    const normalizedSearch = search?.trim();
 
-    const q = `%${search!.trim()}%`;
+    if (!normalizedSearch) {
+      return { whereSql: "", params: [] };
+    }
+
+    const prefixQuery = `${normalizedSearch}%`;
+
+    if (searchBy === "code") {
+      return {
+        whereSql: "WHERE f.ICOD LIKE ?",
+        params: [prefixQuery],
+        normalizedSearch
+      };
+    }
+
+    if (searchBy === "description") {
+      return {
+        whereSql: "WHERE f.IDESCR LIKE ?",
+        params: [prefixQuery],
+        normalizedSearch
+      };
+    }
+
     return {
       whereSql: "WHERE (f.ICOD LIKE ? OR f.IDESCR LIKE ?)",
-      params: [q, q]
+      params: [prefixQuery, prefixQuery],
+      normalizedSearch
     };
   }
 
-  public async findAll({ search, limit, offset }: FindInventoriesParams): Promise<InventoryEntity[]> {
-    const { whereSql, params } = this.buildWhere(search);
+  public async findAll({ search, searchBy = "auto", limit, offset }: FindInventoriesParams): Promise<InventoryEntity[]> {
+    const { whereSql, params, normalizedSearch } = this.buildWhere(search, searchBy);
+    const orderBySql = searchBy === "code" && normalizedSearch
+      ? "ORDER BY (f.ICOD = ?) DESC, f.ICOD ASC"
+      : "ORDER BY f.ICOD ASC";
+    const orderByParams = searchBy === "code" && normalizedSearch ? [normalizedSearch] : [];
 
     const sql = `
       SELECT
@@ -70,16 +99,19 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
       FROM finv f
       LEFT JOIN funidad u ON u.UCOD = f.IUM
       ${whereSql}
-      ORDER BY f.ICOD ASC
+      ${orderBySql}
       LIMIT ? OFFSET ?
     `;
 
-    const rows = await MySqlClient.queryReadOnly<InventoryRow[]>(sql, [...params, limit, offset]);
+    const rows = await MySqlClient.queryReadOnly<InventoryRow[]>(
+      sql,
+      [...params, ...orderByParams, limit, offset]
+    );
     return rows.map((row) => InventoryEntity.fromLegacyRow(row));
   }
 
-  public async countAll(search?: string): Promise<number> {
-    const { whereSql, params } = this.buildWhere(search);
+  public async countAll(search?: string, searchBy: InventorySearchBy = "auto"): Promise<number> {
+    const { whereSql, params } = this.buildWhere(search, searchBy);
 
     const sql = `
       SELECT COUNT(*) AS total
@@ -195,6 +227,84 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
     f.INOIVAENIEPS,
     f.ITMVTS,
     f.ITMREC,
+    f.ICOMPOS,
+    f.ITVP,
+    f.ICONTROLPZAS,
+    f.IFRACCIONABLE,
+    f.IUSEQ,
+    f.IBODEGA,
+    f.IPROXRECEP,
+    f.ITRANSITO,
+    f.IFISICOINICIAL,
+    f.IFECHACAMBIO,
+    f.IFECHACAMBIOPR,
+    f.IWEBPEDIDOS,
+    f.IPRIMERVTAPOS,
+    f.INVFIS,
+    f.IRENGLON,
+    f.IRAIZ,
+    f.ICOLOREXT,
+    f.ICOLOR,
+    f.IPORCOMISION,
+    f.IFIJOIEPS,
+    f.IOFERDESDE,
+    f.IOFERHASTA,
+    f.IMINIMOHASTA,
+    f.IDESCTOMON,
+    f.IDESCTOPOS,
+    f.ILISTA7,
+    f.ILISTA8,
+    f.ILISTA9,
+    f.ILISTA10,
+    f.ILISTA11,
+    f.ILISTA12,
+    f.ILISTA13,
+    f.ILISTA14,
+    f.ILISTA15,
+    f.ILISTA16,
+    f.ILISTA17,
+    f.ILISTA18,
+    f.IMONEDA4,
+    f.IMONEDA5,
+    f.IMONEDA6,
+    f.IMONEDA7,
+    f.IMONEDA8,
+    f.IMONEDA9,
+    f.IMONEDA10,
+    f.IMONEDA11,
+    f.IMONEDA12,
+    f.IMONEDA13,
+    f.IMONEDA14,
+    f.IMONEDA15,
+    f.IMONEDA16,
+    f.IMONEDA17,
+    f.IMONEDA18,
+    f.ICCPMPTIPO,
+    f.ICCPMPCLAVE,
+    f.ICCPMPEMBALAJE,
+    f.IFACTORCCE,
+    f.IVARIOS1,
+    f.IVARIOS2,
+    f.IVARIOS3,
+    f.IVARIOS4,
+    f.IVARIOS5,
+    f.IVARIOS6,
+    f.IVARIOS7,
+    f.IVARIOS8,
+    f.IVARIOS9,
+    f.IVARIOS10,
+    f.IVARIOS11,
+    f.IVARIOS12,
+    f.IVARIOS13,
+    f.IVARIOS14,
+    f.IVARIOS15,
+    f.IVARIOS16,
+    f.IVARIOS17,
+    f.IVARIOS18,
+    f.IVARIOS19,
+    f.IVARIOS20,
+    f.IVARIOS21,
+    f.IVARIOS22,
 
     f.IPORC1,
     f.IFINTEMPORADA,
