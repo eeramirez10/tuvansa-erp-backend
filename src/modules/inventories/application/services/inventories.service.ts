@@ -129,9 +129,13 @@ export class InventoriesService {
   }
 
   public async getInventoryAuxiliarByCode(
-    code: string
+    code: string,
+    warehouse?: string,
+    destination?: number,
+    multiCompany?: number
   ): Promise<{ rows: InventoryAuxiliarEntity[]; stockPrevious: number }> {
     const normalizedCode = code.trim();
+    const normalizedWarehouse = warehouse?.trim();
 
     if (!normalizedCode) {
       return {
@@ -140,7 +144,54 @@ export class InventoriesService {
       };
     }
 
-    const rows = await this.inventoriesRepository.findAuxiliarByCode(normalizedCode);
+    let effectiveDestination: number | undefined = destination ?? 0;
+    let effectiveMultiCompany: number | undefined = multiCompany ?? 1;
+
+    let rows = await this.inventoriesRepository.findAuxiliarByCode({
+      code: normalizedCode,
+      warehouse: normalizedWarehouse,
+      destination: effectiveDestination,
+      multiCompany: effectiveMultiCompany
+    });
+
+    if (!rows.length) {
+      rows = await this.inventoriesRepository.findAuxiliarByCode({
+        code: normalizedCode,
+        warehouse: normalizedWarehouse
+      });
+      effectiveDestination = undefined;
+      effectiveMultiCompany = undefined;
+    }
+
+    if (normalizedWarehouse) {
+      const [warehouseQuantity, auxiliarMovementTotal] = await Promise.all([
+        this.inventoriesRepository.findWarehouseQuantityByCode(normalizedCode, normalizedWarehouse),
+        this.inventoriesRepository.sumAuxiliarQuantityByCode(
+          normalizedCode,
+          normalizedWarehouse,
+          effectiveDestination,
+          effectiveMultiCompany
+        )
+      ]);
+
+      if (warehouseQuantity !== null && Number.isFinite(warehouseQuantity)) {
+        return {
+          rows,
+          stockPrevious: warehouseQuantity - auxiliarMovementTotal
+        };
+      }
+    }
+
+    const detail = await this.inventoriesRepository.findByCode(normalizedCode);
+
+    const stockPreviousFromInventory = detail?.accumulators.stockPrevious ?? null;
+    if (stockPreviousFromInventory !== null && Number.isFinite(stockPreviousFromInventory)) {
+      return {
+        rows,
+        stockPrevious: stockPreviousFromInventory
+      };
+    }
+
     const firstRow = rows[0];
 
     if (!firstRow) {

@@ -495,11 +495,52 @@ INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
 LEFT JOIN fdoc d ON d.DSEQ = ai.DSEQ
 LEFT JOIN (SELECT CIANOCOSTOS FROM fcia LIMIT 1) c ON 1 = 1
 WHERE i.ICOD = ?
-ORDER BY COALESCE(d.DFECHA, '1900-12-31') DESC, ai.AISEQ DESC
+  AND COALESCE(ai.AIMES, 0) = 1
+  AND COALESCE(d.DEST, 0) = ?
+  AND COALESCE(d.DMULTICIA, 0) = ?
+ORDER BY COALESCE(d.DFECHA, '1900-12-31') ASC, ai.AISEQ ASC, ai.DSEQ ASC
 LIMIT 1500;
 ```
 Parámetro recomendado:
-- `[code]`
+- `[code, dest, multicia]`
+
+Filtro opcional por almacén (botón **Filtrar almacén** en modal Auxiliar):
+```sql
+... -- mismo SELECT de INV-009
+WHERE i.ICOD = ?
+  AND COALESCE(ai.AIMES, 0) = 1
+  AND COALESCE(d.DEST, 0) = ?
+  AND COALESCE(d.DMULTICIA, 0) = ?
+  AND LPAD(CAST(COALESCE(ai.AIALMACEN, 0) AS CHAR), 2, '0') = ?
+ORDER BY COALESCE(d.DFECHA, '1900-12-31') ASC, ai.AISEQ ASC, ai.DSEQ ASC
+LIMIT 1500;
+```
+Parámetros recomendados:
+- `[code, dest, multicia, alm]` donde `alm` viene del valor visible en columna `Alm.` (ej. `01`).
+
+Regla Omnis para **stock anterior** cuando se filtra por almacén:
+```sql
+SELECT fa.ALMCANT
+FROM falm fa
+WHERE fa.ALMKEY = CONCAT(RPAD(TRIM(?), 13, ' '), CAST(? AS CHAR))
+LIMIT 1;
+```
+Con ese `ALMCANT`, el backend calcula:
+- `stockAnterior = ALMCANT - SUM(AICANT)` sobre los renglones filtrados del auxiliar.
+```sql
+SELECT COALESCE(SUM(COALESCE(ai.AICANT, 0)), 0) AS TOTAL
+FROM finv i
+INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ
+WHERE i.ICOD = ?
+  AND COALESCE(ai.AIMES, 0) = 1
+  AND COALESCE(d.DEST, 0) = ?
+  AND COALESCE(d.DMULTICIA, 0) = ?
+  AND LPAD(CAST(COALESCE(ai.AIALMACEN, 0) AS CHAR), 2, '0') = ?;
+```
+Notas de implementación:
+- Defaults operativos para Auxiliar: `DEST=0` y `DMULTICIA=1`.
+- Si con ese contexto no hay filas, se aplica fallback sin filtro de compañía para no dejar el modal vacío.
 
 ### INV-010 (OK - Pedidos por cliente)
 Propósito: poblar el modal **Pedidos por cliente** por `ICOD` usando `FINV + FPLIN + FPENC + FCLI` y omitir órdenes de compra (`PENUM` que inicia con `O`).
@@ -712,3 +753,5 @@ Cuando se diseñe la nueva DB:
 - 2026-04-21: INV-010 ampliado con campo `VENCE` desde `FPENC.PEVENCE` para reutilizar endpoint en modal CT.
 - 2026-04-21: renumerado SQL de Importación/Producción/Impuestos a INV-011 para evitar colisión de IDs.
 - 2026-04-21: agregadas tablas FAXINV/FDOC/FCIA, relaciones R-008/R-009/R-010 e INV-012 para modal Ventas por cliente.
+- 2026-04-29: INV-009 ampliado con filtro opcional por almacén (`alm`) y regla Omnis para `stock anterior` (`ALMCANT - SUM(AICANT)`).
+- 2026-04-29: INV-009 refinado al comportamiento real validado: orden ascendente por fecha, `ALMCANT` por `ALMKEY`, suma con `JOIN FDOC`, defaults `DEST=0/DMULTICIA=1` y fallback sin compañía.

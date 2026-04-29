@@ -11,6 +11,12 @@ type GetInventoryByCodeParams = {
   code: string;
 };
 
+type GetInventoryAuxiliarQuery = {
+  alm?: string;
+  dest?: string;
+  multicia?: string;
+};
+
 export class InventoriesController {
   constructor(private readonly inventoriesService: InventoriesService) {}
 
@@ -112,10 +118,26 @@ export class InventoriesController {
   };
 
   public getInventoryAuxiliarByCode = async (
-    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    request: FastifyRequest<{
+      Params: GetInventoryByCodeParams;
+      Querystring: GetInventoryAuxiliarQuery;
+    }>,
     reply: FastifyReply
   ) => {
-    const auxiliar = await this.inventoriesService.getInventoryAuxiliarByCode(request.params.code);
+    const destinationParsed =
+      request.query.dest === undefined ? undefined : Number(request.query.dest);
+    const multiCompanyParsed =
+      request.query.multicia === undefined ? undefined : Number(request.query.multicia);
+
+    const destination = Number.isFinite(destinationParsed) ? destinationParsed : undefined;
+    const multiCompany = Number.isFinite(multiCompanyParsed) ? multiCompanyParsed : undefined;
+
+    const auxiliar = await this.inventoriesService.getInventoryAuxiliarByCode(
+      request.params.code,
+      request.query.alm,
+      destination,
+      multiCompany
+    );
 
     return reply.send({
       data: auxiliar.rows,
@@ -124,6 +146,9 @@ export class InventoriesController {
         source: "repository",
         code: request.params.code,
         count: auxiliar.rows.length,
+        warehouse: request.query.alm ?? null,
+        destination: destination ?? null,
+        multiCompany: multiCompany ?? null,
         stockPrevious: auxiliar.stockPrevious
       }
     });

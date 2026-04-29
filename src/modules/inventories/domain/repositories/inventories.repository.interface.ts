@@ -16,12 +16,26 @@ export type FindInventoriesParams = {
   offset: number;
 };
 
+export type FindInventoryAuxiliarParams = {
+  code: string;
+  warehouse?: string;
+  destination?: number;
+  multiCompany?: number;
+};
+
 export interface IInventoriesRepository {
   findAll(params: FindInventoriesParams): Promise<InventoryEntity[]>;
   countAll(search?: string, searchBy?: InventorySearchBy): Promise<number>;
   findByCode(code: string): Promise<InventoryDetailEntity | null>;
   findWarehousesByCode(code: string): Promise<InventoryWarehouseEntity[]>;
-  findAuxiliarByCode(code: string): Promise<InventoryAuxiliarEntity[]>;
+  findAuxiliarByCode(params: FindInventoryAuxiliarParams): Promise<InventoryAuxiliarEntity[]>;
+  sumAuxiliarQuantityByCode(
+    code: string,
+    warehouse: string,
+    destination?: number,
+    multiCompany?: number
+  ): Promise<number>;
+  findWarehouseQuantityByCode(code: string, warehouse: string): Promise<number | null>;
   findClientSalesByCode(code: string): Promise<InventoryClientSaleEntity[]>;
   findClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]>;
   findNextCode(currentCode: string): Promise<string | null>;

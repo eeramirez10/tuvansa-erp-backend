@@ -15,6 +15,7 @@ import {
   InventoryWarehouseLegacyRow
 } from "../../domain/entities";
 import {
+  FindInventoryAuxiliarParams,
   FindInventoriesParams,
   IInventoriesRepository,
   InventorySearchBy
@@ -27,6 +28,8 @@ type InventoryAuxiliarRow = RowDataPacket & InventoryAuxiliarLegacyRow;
 type InventoryClientSaleRow = RowDataPacket & InventoryClientSaleLegacyRow;
 type InventoryClientOrderRow = RowDataPacket & InventoryClientOrderLegacyRow;
 type CountRow = RowDataPacket & { total: number };
+type QuantityRow = RowDataPacket & { QUANTITY: number | string | null };
+type SumRow = RowDataPacket & { TOTAL: number | string | null };
 
 type CodeRow = RowDataPacket & { ICOD: string };
 
@@ -396,7 +399,21 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
     return rows.map((row) => InventoryWarehouseEntity.fromLegacyRow(row));
   }
 
-  public async findAuxiliarByCode(code: string): Promise<InventoryAuxiliarEntity[]> {
+  public async findAuxiliarByCode({
+    code,
+    warehouse,
+    destination,
+    multiCompany
+  }: FindInventoryAuxiliarParams): Promise<InventoryAuxiliarEntity[]> {
+    const normalizedWarehouse = warehouse?.trim();
+    const filterByWarehouseSql = normalizedWarehouse
+      ? "AND LPAD(CAST(COALESCE(ai.AIALMACEN, 0) AS CHAR), 2, '0') = ?"
+      : "";
+    const filterByCompanySql =
+      destination !== undefined && multiCompany !== undefined
+        ? "AND COALESCE(d.DEST, 0) = ? AND COALESCE(d.DMULTICIA, 0) = ?"
+        : "";
+
     const sql = `
       SELECT
         COALESCE(d.DFECHA, '1900-12-31') AS FECHA,
@@ -433,12 +450,130 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
       LEFT JOIN fdoc d ON d.DSEQ = ai.DSEQ
       LEFT JOIN (SELECT CIANOCOSTOS FROM fcia LIMIT 1) c ON 1 = 1
       WHERE i.ICOD = ?
-      ORDER BY COALESCE(d.DFECHA, '1900-12-31') DESC, ai.AISEQ DESC, ai.DSEQ DESC
+        AND COALESCE(ai.AIMES, 0) = 1
+        ${filterByCompanySql}
+      ${filterByWarehouseSql}
+      ORDER BY COALESCE(d.DFECHA, '1900-12-31') ASC, ai.AISEQ ASC, ai.DSEQ ASC
       LIMIT 1500
     `;
 
-    const rows = await MySqlClient.queryReadOnly<InventoryAuxiliarRow[]>(sql, [code]);
+    const params: unknown[] = [code];
+    if (destination !== undefined && multiCompany !== undefined) {
+      params.push(destination, multiCompany);
+    }
+    if (normalizedWarehouse) {
+      params.push(normalizedWarehouse);
+    }
+    const rows = await MySqlClient.queryReadOnly<InventoryAuxiliarRow[]>(sql, params);
     return rows.map((row) => InventoryAuxiliarEntity.fromLegacyRow(row));
+  }
+
+  public async sumAuxiliarQuantityByCode(
+    code: string,
+    warehouse: string,
+    destination?: number,
+    multiCompany?: number
+  ): Promise<number> {
+    const normalizedWarehouse = warehouse.trim();
+    if (!normalizedWarehouse) {
+      return 0;
+    }
+
+    const joinCompanySql =
+      destination !== undefined && multiCompany !== undefined
+        ? "INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ"
+        : "";
+
+    const filterByCompanySql =
+      destination !== undefined && multiCompany !== undefined
+        ? "AND COALESCE(d.DEST, 0) = ? AND COALESCE(d.DMULTICIA, 0) = ?"
+        : "";
+
+    const sql = `
+      SELECT
+        COALESCE(SUM(COALESCE(ai.AICANT, 0)), 0) AS TOTAL
+      FROM finv i
+      INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+      ${joinCompanySql}
+      WHERE i.ICOD = ?
+        AND COALESCE(ai.AIMES, 0) = 1
+      ${filterByCompanySql}
+      AND LPAD(CAST(COALESCE(ai.AIALMACEN, 0) AS CHAR), 2, '0') = ?
+    `;
+
+    const params: unknown[] = [code];
+    if (destination !== undefined && multiCompany !== undefined) {
+      params.push(destination, multiCompany);
+    }
+    params.push(normalizedWarehouse);
+
+    const rows = await MySqlClient.queryReadOnly<SumRow[]>(sql, params);
+    const total = rows[0]?.TOTAL;
+    const numericTotal = Number(total ?? 0);
+
+    return Number.isFinite(numericTotal) ? numericTotal : 0;
+  }
+
+  public async findWarehouseQuantityByCode(code: string, warehouse: string): Promise<number | null> {
+    const normalizedWarehouse = warehouse.trim();
+    if (!normalizedWarehouse) {
+      return null;
+    }
+
+    const numericWarehouse = Number(normalizedWarehouse);
+    const isNumericWarehouse = Number.isFinite(numericWarehouse);
+
+    if (isNumericWarehouse) {
+      const legacySql = `
+        SELECT
+          fa.ALMCANT AS QUANTITY
+        FROM falm fa
+        WHERE fa.ALMKEY = CONCAT(RPAD(TRIM(?), 13, ' '), CAST(? AS CHAR))
+        LIMIT 1
+      `;
+
+      const legacyRows = await MySqlClient.queryReadOnly<QuantityRow[]>(legacySql, [
+        code,
+        Math.trunc(numericWarehouse)
+      ]);
+      const legacyQuantity = legacyRows[0]?.QUANTITY;
+
+      if (legacyQuantity !== null && legacyQuantity !== undefined) {
+        const numericLegacyQuantity = Number(legacyQuantity);
+        if (Number.isFinite(numericLegacyQuantity)) {
+          return numericLegacyQuantity;
+        }
+      }
+    }
+
+    const sql = `
+      SELECT
+        fa.ALMCANT AS QUANTITY
+      FROM finv i
+      INNER JOIN falm fa ON fa.ISEQ = i.ISEQ
+      WHERE i.ICOD = ?
+        AND (
+          UPPER(TRIM(fa.ALMNUM)) = UPPER(TRIM(?))
+          OR LPAD(CAST(COALESCE(fa.ALMCDNUM, 0) AS CHAR), 2, '0') = ?
+        )
+      ORDER BY (UPPER(TRIM(fa.ALMNUM)) = UPPER(TRIM(?))) DESC, fa.ALMNUM ASC
+      LIMIT 1
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<QuantityRow[]>(sql, [
+      code,
+      normalizedWarehouse,
+      normalizedWarehouse,
+      normalizedWarehouse
+    ]);
+    const quantity = rows[0]?.QUANTITY;
+
+    if (quantity === null || quantity === undefined) {
+      return null;
+    }
+
+    const numericQuantity = Number(quantity);
+    return Number.isFinite(numericQuantity) ? numericQuantity : null;
   }
 
   public async findClientSalesByCode(code: string): Promise<InventoryClientSaleEntity[]> {
