@@ -2,6 +2,7 @@ import {
   InventoryAuxiliarEntity,
   InventoryClientSaleEntity,
   InventoryClientOrderEntity,
+  InventorySalesBreakdownEntity,
   InventoryDetailEntity,
   InventoryEntity,
   InventoryWarehouseEntity
@@ -37,6 +38,11 @@ export interface IInventoriesRepository {
   ): Promise<number>;
   findWarehouseQuantityByCode(code: string, warehouse: string): Promise<number | null>;
   findClientSalesByCode(code: string): Promise<InventoryClientSaleEntity[]>;
+  findSalesBreakdownByCode(input: {
+    code: string;
+    destination?: number;
+    multiCompany?: number;
+  }): Promise<InventorySalesBreakdownEntity[]>;
   findClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]>;
   findNextCode(currentCode: string): Promise<string | null>;
   findPreviousCode(currentCode: string): Promise<string | null>;

@@ -647,6 +647,50 @@ ORDER BY cli.CLICOD ASC;
 Parámetro recomendado:
 - `[code]`
 
+### INV-013 (ADJUSTED - Ventas desglosadas)
+Propósito: poblar el modal **Ventas desglosadas** por `ICOD`, detalle renglón por renglón desde `FINV + FAXINV + FDOC + FCLI`.
+```sql
+SELECT
+  COALESCE(c.CLICOD, '') AS CODIGO,
+  COALESCE(c.CLINOM, '') AS NOMBRE,
+  COALESCE(ai.AICANTF, 0) AS CANTIDAD,
+  COALESCE(ai.AIPRECIO, 0) AS PRECIO,
+  COALESCE(CAST(d.DNUM AS CHAR), '') AS DOC,
+  COALESCE(d.DFECHA, '1900-12-31') AS FECHA,
+  CASE
+    WHEN COALESCE(d.DTIPOC2, 0) = 0 THEN 0
+    ELSE COALESCE(ai.AIPRECIO, 0) / d.DTIPOC2
+  END AS PRECIO_US,
+  COALESCE(d.DTIPOC2, 0) AS TC_DOLAR,
+  COALESCE(ai.AIDESCTO, 0) AS DESC_PORC,
+  COALESCE(NULLIF(TRIM(d.DREFERELLOS), ''), '') AS OC,
+  COALESCE(CAST(d.DSUCURSAL AS CHAR), '0') AS SUCURSAL,
+  COALESCE(ai.AIPZAS, 0) AS PZAS
+FROM finv i
+INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+LEFT JOIN fdoc d ON d.DSEQ = ai.DSEQ
+LEFT JOIN fcli c ON c.CLISEQ = ai.CLISEQ
+WHERE i.ICOD = ?
+  AND COALESCE(ai.CLISEQ, 0) <> 0
+  AND COALESCE(d.DEST, 0) = ?
+  AND COALESCE(d.DMULTICIA, 0) = ?
+  AND COALESCE(ai.AIMES, 0) = 1
+  AND COALESCE(d.DESFACT, 0) = 1
+  AND COALESCE(d.DOTROSTXT, '') <> 'POS'
+  AND COALESCE(d.DCONTROLPOS, 0) = 0
+ORDER BY ai.AISEQ DESC
+LIMIT 1500;
+```
+Parámetro recomendado:
+- `[code, dest, multicia]` (defaults operativos actuales: `dest=0`, `multicia=1`)
+
+Notas:
+- Ajustado contra transcripción Omnis de `EINV#38` (`VENTAS DESGLOSADAS.pdf`):
+  - `Define list {CLICOD,CLINOM,AICANTF,AIPRECIO,DNUM,DFECHA,DTIPOC2,DREFERELLOS,AIDESCTO,AISEQ,AIOTROS,DSUCURSAL}`.
+- Regla funcional acordada para API/UI actual:
+  - `PRECIO_US = PRECIO / TC_DOLAR` (si `TC_DOLAR=0`, usar `0`).
+- Endpoint implementado: `GET /api/inventories/:code/sales-breakdown?dest=0&multicia=1`.
+
 ## 7) Mapeo tab Dimensiones (Omnis -> API)
 
 ### 7.1 Confirmado por notas Omnis (EINV#1)
@@ -755,3 +799,5 @@ Cuando se diseñe la nueva DB:
 - 2026-04-21: agregadas tablas FAXINV/FDOC/FCIA, relaciones R-008/R-009/R-010 e INV-012 para modal Ventas por cliente.
 - 2026-04-29: INV-009 ampliado con filtro opcional por almacén (`alm`) y regla Omnis para `stock anterior` (`ALMCANT - SUM(AICANT)`).
 - 2026-04-29: INV-009 refinado al comportamiento real validado: orden ascendente por fecha, `ALMCANT` por `ALMKEY`, suma con `JOIN FDOC`, defaults `DEST=0/DMULTICIA=1` y fallback sin compañía.
+- 2026-04-30: agregado INV-013 (Ventas desglosadas) como SQL inicial en estado DRAFT y relación al endpoint `sales-breakdown`.
+- 2026-04-30: INV-013 ajustado con base en `VENTAS DESGLOSADAS.pdf` (`EINV#38`): `AIOTROS`, `DTIPOC2`, `DSUCURSAL`, filtros `DEST/DMULTICIA` y orden por `AISEQ DESC`.

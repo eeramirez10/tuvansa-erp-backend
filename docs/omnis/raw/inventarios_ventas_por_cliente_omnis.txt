@@ -1,0 +1,186 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Window PROSCAI_GERMAN - PRUEBAS.EINV#6 as at 21/04/2026 (21/04/2026 14:31:18)                                           PAGE 1
+
+          TYPE                              NAME                        ROW           COL          ATTRIBUTES                                                     JUST
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+0         INIT
+       Set current list #L2
+       Clear list
+       Define list (Store long data) {CLICOD,CLINOM,AICANTF,AIPRECIO,#1D2,#2D2}
+       Call procedure 240 {LOAD DOCTOS}
+       Redraw windows (All windows)
+
+1       Display (border)                                                  312          239         y                                                               Right
+     Calculation: tot(#1)
+
+2       Display (border)                                                  312          327         y                                                               Right
+     Calculation: tot(#2D2)
+
+3        Pushbutton               User defined     156     78       N                                            Center
+     Text: Marcar par 9
+      If #CLICK
+         Calculate #S3 as 'EINV#6/9'
+         Call procedure INICIO/30 {Accesos}
+         Begin reversible block
+           Set main file {FCLI}
+         End reversible block
+         Calculate #L as 1
+         Repeat
+           Load from list
+           Call procedure MSQL/261 ('FCLI',CLICOD,CLICOD,kTrue,kFalse,1) {FIND File,Field,Value, Exact,Search,Limit}
+           Calculate LVOTROS as ''
+           Call procedure MBASE/67 (LVOTROS,CLIPAR9,con(9,CIAALIAS)) {Arma LVOTROS}
+           Call procedure MBASE/69 ('FCLI',LVOTROS) {EDITA UN FILE FILE_UOTROS}
+           Calculate #L as #L+1
+         Until #L>#LN
+         Clear selected files {FCLI}
+      End If
+
+4         Table                            #L2                            -1           -1          VTC                                                             Left
+
+5        Pushbutton              User defined                             3            1           N                                                               Left
+     Text: Código
+      If #CLICK
+         Begin reversible block
+           Set current list #L2
+           Clear sort fields
+           Set sort field CLICOD
+           Sort list
+           Redraw lists
+         End reversible block
+      End If
+
+6        Pushbutton              User defined                             3            80          N                                                               Left
+     Text: Cliente
+      If #CLICK
+         Begin reversible block
+           Set current list #L2
+           Clear sort fields
+           Set sort field CLINOM
+           Sort list
+           Redraw lists
+         End reversible block
+      End If
+
+7        Pushbutton                        User defined                   3            245         N                                                               Right
+     Text: Cantidad
+      If #CLICK
+         Begin reversible block
+           Set current list #L2
+           Clear sort fields
+           Set sort field #1
+           Sort list
+           Redraw lists
+         End reversible block
+      End If
+
+8        Pushbutton                        User defined                   3            318         N                                                               Right
+     Text: Importe
+      If #CLICK
+         Begin reversible block
+           Set current list #L2
+           Clear sort fields
+           Set sort field #2
+           Sort list
+           Redraw lists
+         End reversible block
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Window PROSCAI_GERMAN - PRUEBAS.EINV#6 as at 21/04/2026 (21/04/2026 14:31:18)                                           PAGE 2
+
+          TYPE                              NAME                        ROW           COL          ATTRIBUTES                                                     JUST
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+       End If
+
+9         Entry field                      CLICOD                         24           3                                                                           Left
+
+10        Entry field                      CLINOM                         24           84                                                                          Left
+
+11        Entry field                      #1D2                           24           249         -                                                               Right
+
+12        Entry field                      #2D2                           24           319         -                                                               Right
+
+240     LOAD DOCTOS
+      Begin reversible block
+        Set main file {FAXINV}
+        Set current list #L2
+        Call procedure MSQL/281 ("(CLISEQ<>0)&(D
+        EST=CIAKYT)&(DMULTICIA=LVCIA)&(AIMES=1)&
+        (DESFACT=1)&(DOTROSTXT<>'POS')&(DCONTROL
+        POS=0)&((CLICIA=0)|(CLICIA=CIACIAUSR)|(CIACIAUSR=0))&((CIASOLOUSR=0)|(mid(fld('CLIPAR',CIAUSRES),2,9)=CIAUSRPAR))") {SET_SEARC
+        H_AS_CALC
+      End reversible block
+      Clear list
+      Call procedure MSQL/276 ('FAXINV',ISEQ,kTrue,kTrue,0) {BUILD_LIST_FROM_FILE File,Field, Exact,Search,Limit}
+      Set final line number {#LN+1}
+      Calculate #L as #LN
+      Calculate CLICOD as 'ZZZZZZZZZ'
+      Replace line in list
+      Clear sort fields
+      Set sort field CLICOD
+      Sort list
+      Calculate #L as 1
+      Load from list
+      Calculate #S2 as CLICOD
+      Calculate #3 as AICANTF
+      Calculate #4 as AICANTF*AIPRECIO
+      Calculate #L as #L+1
+      Repeat
+        Load from list
+        If #S2=CLICOD
+            Calculate #3 as #3+AICANTF
+            Calculate #4 as #4+AICANTF*AIPRECIO
+            Delete line in list
+        Else
+            Calculate #L as #L-1
+            Load from list
+            Calculate #1 as #3
+            Calculate #2 as #4
+            Replace line in list
+            Calculate #L as #L+1
+            Load from list
+            Calculate #S2 as CLICOD
+            Calculate #3 as AICANTF
+            Calculate #4 as AICANTF*AIPRECIO
+            Calculate #L as #L+1
+        End If
+      Until #L>#LN
+      Calculate #L as #LN
+      Delete line in list
+      Calculate #L as 1
+
+495     IMPRIME
+      Calculate #S3 as 'EINV#6/495'
+      Call procedure INICIO/30 {Accesos}
+      Calculate #S1 as "con(jst(CLICOD,6),' ',jst(mid(CLINOM,1,30),30),' ',jst(#1,-9),' ',jst(#2,-11))"
+      Calculate #S2 as "con(jst('Código',6),' ',jst('Cliente',30),' ',jst('Cantidad',-9),' ',jst('Importe',-11))"
+      Calculate #S3 as con('VENTAS POR CLIENTE ',IDESCR)
+      Call procedure INICIO/38 {IMPRIME PANTALLA}
+
+
+
+List of attribute codes:
+         I      Invisible                                                            A        Show nulls
+         U      Upper case                                                           -        Negatives allowed
+         E      Zero shown empty                                                     L        Local
+         J      Unique index check                                                   F        Automatic find
+         S      Do not scale                                                         X        Do not flash
+         H      Horizontal scroll bar                                                V        Vertical scroll bar
+         M      Multiple select                                                      G        Do not gray
+         Y      Enterable                                                            Q        Tabbable
+         T      Table header                                                         C        Column header
+         Z      Autoextend                                                           D        Pushbutton active during enter data
+         N      Pushbutton active when no procedures running                         R        Pushbutton inactive if no current record
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Window PROSCAI_GERMAN - PRUEBAS.EINV#6 as at 21/04/2026 (21/04/2026 14:31:18)                                           PAGE 3
+
+          TYPE                              NAME                        ROW           COL          ATTRIBUTES                                                     JUST
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+          K        Input mask                                                         P       Drag and drop
+          B        Autotab                                                            n       Numeric format
+          2        Boolean format                                                     d       Date/Time format
+          x        Not active
+          y        Disabled
+
+
+No procedure errors found
+

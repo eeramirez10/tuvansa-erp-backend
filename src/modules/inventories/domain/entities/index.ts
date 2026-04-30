@@ -19,3 +19,7 @@ export {
   InventoryClientSaleEntity,
   type InventoryClientSaleLegacyRow
 } from "./inventory-client-sale.entity";
+export {
+  InventorySalesBreakdownEntity,
+  type InventorySalesBreakdownLegacyRow
+} from "./inventory-sales-breakdown.entity";

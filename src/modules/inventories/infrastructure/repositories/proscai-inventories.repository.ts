@@ -7,6 +7,8 @@ import {
   InventoryClientSaleLegacyRow,
   InventoryClientOrderEntity,
   InventoryClientOrderLegacyRow,
+  InventorySalesBreakdownEntity,
+  InventorySalesBreakdownLegacyRow,
   InventoryDetailEntity,
   InventoryDetailLegacyRow,
   InventoryEntity,
@@ -27,6 +29,7 @@ type InventoryWarehouseRow = RowDataPacket & InventoryWarehouseLegacyRow;
 type InventoryAuxiliarRow = RowDataPacket & InventoryAuxiliarLegacyRow;
 type InventoryClientSaleRow = RowDataPacket & InventoryClientSaleLegacyRow;
 type InventoryClientOrderRow = RowDataPacket & InventoryClientOrderLegacyRow;
+type InventorySalesBreakdownRow = RowDataPacket & InventorySalesBreakdownLegacyRow;
 type CountRow = RowDataPacket & { total: number };
 type QuantityRow = RowDataPacket & { QUANTITY: number | string | null };
 type SumRow = RowDataPacket & { TOTAL: number | string | null };
@@ -599,6 +602,55 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
 
     const rows = await MySqlClient.queryReadOnly<InventoryClientSaleRow[]>(sql, [code]);
     return rows.map((row) => InventoryClientSaleEntity.fromLegacyRow(row));
+  }
+
+  public async findSalesBreakdownByCode(input: {
+    code: string;
+    destination?: number;
+    multiCompany?: number;
+  }): Promise<InventorySalesBreakdownEntity[]> {
+    const destination = input.destination ?? 0;
+    const multiCompany = input.multiCompany ?? 1;
+    const sql = `
+      SELECT
+        COALESCE(c.CLICOD, '') AS CODIGO,
+        COALESCE(c.CLINOM, '') AS NOMBRE,
+        COALESCE(ai.AICANTF, 0) AS CANTIDAD,
+        COALESCE(ai.AIPRECIO, 0) AS PRECIO,
+        COALESCE(CAST(d.DNUM AS CHAR), '') AS DOC,
+        COALESCE(d.DFECHA, '1900-12-31') AS FECHA,
+        CASE
+          WHEN COALESCE(d.DTIPOC2, 0) = 0 THEN 0
+          ELSE COALESCE(ai.AIPRECIO, 0) / d.DTIPOC2
+        END AS PRECIO_US,
+        COALESCE(d.DTIPOC2, 0) AS TC_DOLAR,
+        COALESCE(ai.AIDESCTO, 0) AS DESC_PORC,
+        COALESCE(NULLIF(TRIM(d.DREFERELLOS), ''), '') AS OC,
+        COALESCE(CAST(d.DSUCURSAL AS CHAR), '0') AS SUCURSAL,
+        COALESCE(ai.AIPZAS, 0) AS PZAS,
+        COALESCE(ai.AISEQ, 0) AS AISEQ_SORT
+      FROM finv i
+      INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+      LEFT JOIN fdoc d ON d.DSEQ = ai.DSEQ
+      LEFT JOIN fcli c ON c.CLISEQ = ai.CLISEQ
+      WHERE i.ICOD = ?
+        AND COALESCE(ai.CLISEQ, 0) <> 0
+        AND COALESCE(d.DEST, 0) = ?
+        AND COALESCE(d.DMULTICIA, 0) = ?
+        AND COALESCE(ai.AIMES, 0) = 1
+        AND COALESCE(d.DESFACT, 0) = 1
+        AND COALESCE(d.DOTROSTXT, '') <> 'POS'
+        AND COALESCE(d.DCONTROLPOS, 0) = 0
+      ORDER BY AISEQ_SORT DESC
+      LIMIT 1500
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventorySalesBreakdownRow[]>(sql, [
+      input.code,
+      destination,
+      multiCompany
+    ]);
+    return rows.map((row) => InventorySalesBreakdownEntity.fromLegacyRow(row));
   }
 
   public async findClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]> {

@@ -8,6 +8,7 @@ Current strategy:
 - Keep legacy DB untouched (read-only only).
 - Expose clean endpoints for the new frontend.
 - Preserve legacy behavior/field meaning while modernizing API contracts.
+- Keep docs always updated after each functional change (`docs/ai/*` + `docs/database/legacy-logical-model.md`).
 
 ## 2) Current scope (implemented)
 - Module: `inventories`
@@ -17,6 +18,11 @@ Current strategy:
   - `GET /api/inventories/:code`
   - `GET /api/inventories/:code/next`
   - `GET /api/inventories/:code/previous`
+  - `GET /api/inventories/:code/warehouses`
+  - `GET /api/inventories/:code/auxiliar`
+  - `GET /api/inventories/:code/orders-by-client`
+  - `GET /api/inventories/:code/sales-by-client`
+  - `GET /api/inventories/:code/sales-breakdown` (DRAFT tuning against Omnis)
 
 ## 3) Architecture style
 - Stack: Fastify + TypeScript + mysql2 + zod.
@@ -37,6 +43,7 @@ Important: legacy DB has logical relationships without strict foreign keys.
 
 Documented source of truth:
 - `docs/database/legacy-logical-model.md`
+- `docs/ai/INDEX.md`
 
 Confirmed relation:
 - `FINV.IUM -> FUNIDAD.UCOD` (logical join)
@@ -98,7 +105,8 @@ HTTP examples:
 
 ## 10) Quick onboarding checklist for any AI assistant
 1. Read this file.
-2. Read `docs/database/legacy-logical-model.md`.
-3. Review `src/modules/inventories/*` before changing SQL.
-4. Keep DB access read-only.
-5. Preserve class-based architecture and entity mapping.
+2. Read `docs/ai/INDEX.md` and follow the order.
+3. Read `docs/database/legacy-logical-model.md`.
+4. Review `src/modules/inventories/*` before changing SQL.
+5. Keep DB access read-only.
+6. Preserve class-based architecture and entity mapping.

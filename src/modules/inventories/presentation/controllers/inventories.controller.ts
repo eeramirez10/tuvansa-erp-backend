@@ -17,6 +17,11 @@ type GetInventoryAuxiliarQuery = {
   multicia?: string;
 };
 
+type GetInventorySalesBreakdownQuery = {
+  dest?: string;
+  multicia?: string;
+};
+
 export class InventoriesController {
   constructor(private readonly inventoriesService: InventoriesService) {}
 
@@ -186,6 +191,42 @@ export class InventoriesController {
         count: sales.rows.length,
         totalQuantity: sales.totalQuantity,
         totalAmount: sales.totalAmount
+      }
+    });
+  };
+
+  public getInventorySalesBreakdownByCode = async (
+    request: FastifyRequest<{
+      Params: GetInventoryByCodeParams;
+      Querystring: GetInventorySalesBreakdownQuery;
+    }>,
+    reply: FastifyReply
+  ) => {
+    const destinationParsed =
+      request.query.dest === undefined ? undefined : Number(request.query.dest);
+    const multiCompanyParsed =
+      request.query.multicia === undefined ? undefined : Number(request.query.multicia);
+
+    const destination = Number.isFinite(destinationParsed) ? destinationParsed : undefined;
+    const multiCompany = Number.isFinite(multiCompanyParsed) ? multiCompanyParsed : undefined;
+
+    const breakdown = await this.inventoriesService.getInventorySalesBreakdownByCode(
+      request.params.code,
+      destination,
+      multiCompany
+    );
+
+    return reply.send({
+      data: breakdown.rows,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: breakdown.rows.length,
+        totalQuantity: breakdown.totalQuantity,
+        totalPrice: breakdown.totalPrice,
+        destination: destination ?? null,
+        multiCompany: multiCompany ?? null
       }
     });
   };

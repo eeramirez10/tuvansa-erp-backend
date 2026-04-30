@@ -7,6 +7,7 @@ import {
   InventoryAuxiliarEntity,
   InventoryClientSaleEntity,
   InventoryClientOrderEntity,
+  InventorySalesBreakdownEntity,
   InventoryDetailEntity,
   InventoryEntity,
   InventoryWarehouseEntity
@@ -243,6 +244,36 @@ export class InventoriesService {
       rows,
       totalQuantity,
       totalAmount
+    };
+  }
+
+  public async getInventorySalesBreakdownByCode(
+    code: string,
+    destination?: number,
+    multiCompany?: number
+  ): Promise<{ rows: InventorySalesBreakdownEntity[]; totalQuantity: number; totalPrice: number }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return {
+        rows: [],
+        totalQuantity: 0,
+        totalPrice: 0
+      };
+    }
+
+    const rows = await this.inventoriesRepository.findSalesBreakdownByCode({
+      code: normalizedCode,
+      destination,
+      multiCompany
+    });
+    const totalQuantity = rows.reduce((acc, row) => acc + (row.quantity ?? 0), 0);
+    const totalPrice = rows.reduce((acc, row) => acc + (row.price ?? 0), 0);
+
+    return {
+      rows,
+      totalQuantity,
+      totalPrice
     };
   }
 }

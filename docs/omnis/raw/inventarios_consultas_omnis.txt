@@ -1,0 +1,304 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Window PROSCAI_GERMAN - PRUEBAS.EINV#8 as at 14/04/2026 (14/04/2026 17:56:19)                                           PAGE 1
+
+          TYPE                              NAME                        ROW           COL          ATTRIBUTES                                                     JUST
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+0         INIT
+       Call procedure MBASE/310 {POCISIONA VENTANA}
+
+1        Pushbutton              User defined         22     22    N                                                                                               Center
+     Text: Auxiliar
+      If #CLICK
+         Calculate #S3 as 'EINV#8/1'
+         Call procedure INICIO/30 {Accesos}
+         If ((CIAALIAS='CADER')|(CIAALIAS='KARELE'))&(len(ICOD)=CIARAIZ)
+             ; PRUEBA PARA VER ROTACION
+             Open window EINV#10B
+         Else
+             Call procedure MSTUDIO/21 ('EINV#10') {OPEN WINDOW}
+         End If
+      End If
+
+2        Pushbutton              User defined      44     22                                       N                                                               Center
+     Text: Pedidos por cliente
+      If #CLICK
+         Calculate #S3 as 'EINV#8/2'
+         Call procedure INICIO/30 {Accesos}
+         Call procedure MSTUDIO/21 ('EINV#7') {OPEN WINDOW}
+      End If
+
+3        Pushbutton              User defined      44     121                                      N                                                               Center
+     Text: *
+      If #CLICK
+         Calculate #S3 as 'EINV#8/3'
+         Call procedure INICIO/30 {Accesos}
+         Call procedure MSTUDIO/21 ('EINV#7A') {OPEN WINDOW}
+      End If
+
+4        Pushbutton              User defined        44     143  N                                                                                                 Center
+     Text: CT
+      If #CLICK
+         Calculate #S3 as 'EINV#8/4'
+         Call procedure INICIO/30 {Accesos}
+         If CIAALIAS<>'LETICIA'
+            Call procedure MSTUDIO/21 ('EINV#7AA') {OPEN WINDOW}
+         Else
+            Call procedure MSTUDIO/21 ('EINV#7AALET') {OPEN WINDOW}
+         End If
+      End If
+
+5        Pushbutton              User defined       66    22                                       N                                                               Center
+     Text: Cotizaciones por cliente
+      If #CLICK
+         Calculate #S3 as 'EINV#8/5'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#47
+         Call procedure MSTUDIO/21 ('EINV#47') {OPEN WINDOW}
+      End If
+
+6        Pushbutton              User defined      88     22                                       N                                                               Center
+     Text: Ventas por cliente
+      If #CLICK
+         Calculate #S3 as 'EINV#854'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#6
+         Call procedure MSTUDIO/21 ('EINV#6') {OPEN WINDOW}
+      End If
+
+7        Pushbutton              User defined      88     121                                      N                                                               Center
+     Text: *
+      If #CLICK
+         Calculate #S3 as 'EINV#8/6'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#6BA
+         Call procedure MSTUDIO/21 ('EINV#6BA') {OPEN WINDOW}
+      End If
+
+8        Pushbutton              User defined        88     143     N                                                                                              Center
+     Text: CT
+      If #CLICK
+         Calculate #S3 as 'EINV#8/7'
+         Call procedure INICIO/30 {Accesos}
+         If #SHIFT
+            ; Open window (Use v1 coordinates) EINV#6AAA ;; leticia
+            Call procedure MSTUDIO/21 ('EINV#6AAA') {OPEN WINDOW}
+         Else
+            ; Open window (Use v1 coordinates) EINV#6AA
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Window PROSCAI_GERMAN - PRUEBAS.EINV#8 as at 14/04/2026 (14/04/2026 17:56:19)                                           PAGE 2
+
+          TYPE                              NAME                        ROW           COL          ATTRIBUTES                                                     JUST
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+             Call procedure MSTUDIO/21 ('EINV#6AA') {OPEN WINDOW}
+          End If
+       End If
+
+9        Pushbutton              User defined       110   22                                       N                                                               Center
+     Text: Ventas desglozadas
+      If #CLICK
+         Calculate #S3 as 'EINV#8/8'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#38
+         Call procedure MSTUDIO/21 ('EINV#38') {OPEN WINDOW}
+      End If
+
+10       Pushbutton              User defined       132   22                                       N                                                               Center
+     Text: Ventas por sucursal
+      If #CLICK
+         Calculate #S3 as 'EINV#8/9'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#30
+         Call procedure MSTUDIO/21 ('EINV#30') {OPEN WINDOW}
+      End If
+
+11       Pushbutton              User defined       154   22                                       N                                                               Center
+     Text: Ventas anuales
+      If #CLICK
+         Calculate #S3 as 'EINV#8/10'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV2#2
+         Call procedure MSTUDIO/21 ('EINV2#2') {OPEN WINDOW}
+      End If
+
+12       Pushbutton              User defined      176    22                                       N                                                               Center
+     Text: Ventas anuales resumen
+      If #CLICK
+         Calculate #S3 as 'EINV#8/12A'
+         Call procedure INICIO/30 {Accesos}
+         Call procedure MSTUDIO/21 ('EINV2#20') {OPEN WINDOW}
+      End If
+
+13       Pushbutton              User defined       198   22                                       N                                                               Center
+     Text: Ordenado a proveedores
+      If #CLICK
+         Calculate #S3 as 'EINV#8/11'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#12
+         Call procedure MSTUDIO/21 ('EINV#12') {OPEN WINDOW}
+      End If
+
+14       Pushbutton              User defined       198   143                                      N                                                               Center
+     Text: CT
+      If #CLICK
+         Calculate #S3 as 'EINV#8/13'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#12A
+         Call procedure MSTUDIO/21 ('EINV#12A') {OPEN WINDOW}
+      End If
+
+15       Pushbutton              User defined       220   22                                       N                                                               Center
+     Text: Cotizado a proveedores
+      If #CLICK
+         Calculate #S3 as 'EINV#8/14'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#12B
+         Call procedure MSTUDIO/21 ('EINV#12B') {OPEN WINDOW}
+      End If
+
+16       Pushbutton              User defined      242    22                                       N                                                               Center
+     Text: Compras por proveedor
+      If #CLICK
+         Calculate #S3 as 'EINV#8/12'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#5
+         Call procedure MSTUDIO/21 ('EINV#5') {OPEN WINDOW}
+      End If
+
+17       Pushbutton              User defined       242                                143         N                                                               Center
+     Text: DT
+      If #CLICK
+         Calculate #S3 as 'EINV#8/13'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#12A
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Window PROSCAI_GERMAN - PRUEBAS.EINV#8 as at 14/04/2026 (14/04/2026 17:56:19)                                           PAGE 3
+
+          TYPE                              NAME                        ROW           COL          ATTRIBUTES                                                     JUST
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+          Call procedure MSTUDIO/21 ('EINV#50') {OPEN WINDOW}
+       End If
+
+18       Pushbutton              User defined       264   22                                       N                                                               Center
+     Text: Compras desglozadas
+      If #CLICK
+         Calculate #S3 as 'EINV#8/16'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#39
+         Call procedure MSTUDIO/21 ('EINV#39') {OPEN WINDOW}
+      End If
+
+19       Pushbutton              User defined       286   22                                       N                                                               Center
+     Text: Compras anuales
+      If #CLICK
+         Calculate #S3 as 'EINV#8/19'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV2#4
+         Call procedure MSTUDIO/21 ('EINV2#4') {OPEN WINDOW}
+      End If
+
+20       Pushbutton              User defined           330       22       N                         Center
+     Text: Piezas
+      If #CLICK
+         Calculate #S3 as 'EINV#8/15'
+         Call procedure INICIO/30 {Accesos}
+         If (ICOD='A@A')|(ICOD='A@B')|(ICOD='A@C') ;; A@A=MONEDERO A@B=VALES DE CXC DE EMPRESAS A@C=HISTORICO DE A@A PARA QUE EN
+         A@A SE VEAN SOLO LOS VIGENTES
+             Call procedure MSTUDIO/21 ('EINV#28MO') {OPEN WINDOW}
+         Else
+             If mid(CIAPLUGS,25,1)<>'X'
+                OK message (High position,Large size) {Esta versión no contiene el módulo de PIEZAS}
+                Quit procedure
+             End If
+             Call procedure MSTUDIO/21 ('EINV#28') {OPEN WINDOW}
+         End If
+      End If
+
+21       Pushbutton              User defined       352   22                                       N                                                               Center
+     Text: Piezas surtidas
+      If #CLICK
+         Calculate #S3 as 'EINV#8/19'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#28A
+         Call procedure MSTUDIO/21 ('EINV#28A') {OPEN WINDOW}
+      End If
+
+22       Pushbutton              User defined       374   22                                       N                                                               Center
+     Text: W.I.P.
+      If #CLICK
+         Calculate #S3 as 'EINV#8/17'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#42
+         Call procedure MSTUDIO/21 ('EINV#42') {OPEN WINDOW}
+      End If
+
+23       Pushbutton              User defined       374   143                                      N                                                               Center
+     Text: CT
+      If #CLICK
+         Calculate #S3 as 'EINV#8/21'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#42A
+         Call procedure MSTUDIO/21 ('EINV#42A') {OPEN WINDOW}
+      End If
+
+24       Pushbutton              User defined       396   22                                       N                                                               Center
+     Text: E.D.I.
+      If #CLICK
+         Calculate #S3 as 'EINV#8/22'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV#44
+         Call procedure MSTUDIO/21 ('EINV#44') {OPEN WINDOW}
+      End If
+
+25       Pushbutton              User defined      418    22                                       N                                                               Center
+     Text: Habilitaciones pendientes
+      If #CLICK
+         Calculate #S3 as 'EINV#8/22'
+         Call procedure INICIO/30 {Accesos}
+         Call procedure MSTUDIO/21 ('EINV#51') {OPEN WINDOW}
+      End If
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Window PROSCAI_GERMAN - PRUEBAS.EINV#8 as at 14/04/2026 (14/04/2026 17:56:19)                                           PAGE 4
+
+          TYPE                              NAME                        ROW           COL          ATTRIBUTES                                                     JUST
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+26       Pushbutton              User defined                             440          22          N                                                               Center
+     Text: Documentos
+      If #CLICK
+         Calculate #S3 as 'EINV#8/24'
+         Call procedure INICIO/30 {Accesos}
+         Open window EINV#24
+      End If
+
+27       Pushbutton              User defined       308   22                                       N                                                               Center
+     Text: Compras anuales resumen
+      If #CLICK
+         Calculate #S3 as 'EINV#8/27'
+         Call procedure INICIO/30 {Accesos}
+         ; Open window (Use v1 coordinates) EINV2#21
+         Call procedure MSTUDIO/21 ('EINV2#21') {OPEN WINDOW}
+      End If
+
+
+
+List of attribute codes:
+         I      Invisible                                                            A        Show nulls
+         U      Upper case                                                           -        Negatives allowed
+         E      Zero shown empty                                                     L        Local
+         J      Unique index check                                                   F        Automatic find
+         S      Do not scale                                                         X        Do not flash
+         H      Horizontal scroll bar                                                V        Vertical scroll bar
+         M      Multiple select                                                      G        Do not gray
+         Y      Enterable                                                            Q        Tabbable
+         T      Table header                                                         C        Column header
+         Z      Autoextend                                                           D        Pushbutton active during enter data
+         N      Pushbutton active when no procedures running                         R        Pushbutton inactive if no current record
+         K      Input mask                                                           P        Drag and drop
+         B      Autotab                                                              n        Numeric format
+         2      Boolean format                                                       d        Date/Time format
+         x      Not active
+         y      Disabled
+
+
+No procedure errors found
+
