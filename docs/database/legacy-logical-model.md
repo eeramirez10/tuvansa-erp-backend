@@ -782,7 +782,197 @@ Cuando se diseñe la nueva DB:
 - Reemplazar fechas sentinel por `NULL`.
 - Definir catálogos y enums para campos de estado.
 
-## 10) Bitácora de cambios del documento
+## 10) Descubrimiento semántico asistido (2026-04-30)
+
+Fuente:
+- `docs/database/discovery/semantic-analysis.md`
+- corridas con `npm run analyze:legacy-semantic`
+
+Hallazgos de alto impacto para futuros SQL:
+- `FINV.IUM -> FUNIDAD.UCOD` confirma cobertura ~100% (join estable para unidad descriptiva).
+- `FINV.ICODPRV -> FPRV.PRVCOD` no es estable globalmente (muchos valores tipo prefijo o no catálogo).
+- `FINV.IPRV -> FPRV.PRVCOD` sí tiene alta cobertura (~93% en muestra grande) para proveedor por código.
+- `FALM.ISEQ -> FINV.ISEQ` y `FAXINV.ISEQ -> FINV.ISEQ` son relaciones 100% estables (pivote de inventario).
+- `FAXINV.DSEQ -> FDOC.DSEQ` y `FAX.DSEQ -> FDOC.DSEQ` son estables para unir movimientos con documento.
+- `FPLIN.PESEQ -> FPENC.PESEQ` es estable para encabezado/líneas de pedidos.
+- `FALM.ALMNUM -> FALMCAT.CATALM` funciona en alta proporción, con faltantes puntuales de catálogo.
+
+Conclusión práctica:
+- Para SQL nuevos, priorizar joins por `*SEQ` como relación primaria.
+- Usar `ICODPRV` sólo cuando el caso funcional requiera ese código textual exacto.
+- Para proveedor principal operativo en pantallas de inventario, evaluar `IPRV -> PRVCOD` como base.
+
+### 10.1 Señales operativas descubiertas por prefijos y tipos
+
+Basado en `docs/database/discovery/semantic-analysis.md`:
+
+- `FPENC.PENUM`:
+  - Prefijos `P` y `X` => casi todo con `CLISEQ > 0` (flujo cliente/ventas).
+  - Prefijo `O` => casi todo con `PRVSEQ > 0` (órdenes de compra / proveedor).
+- `FPLIN.PLTIPMV` confirma la misma separación:
+  - `P*` y `X*` orientado a cliente.
+  - `O*` orientado a proveedor.
+- `FAXINV + FTIPMV` por `TIMODULO`:
+  - `TIMODULO=4`: remisiones/facturación (ventas).
+  - `TIMODULO=7`: gastos/recepciones (compras/cxp).
+  - `TIMODULO=2`: traspasos/entradas/salidas de inventario.
+  - `TIMODULO=9`: pólizas (contabilidad).
+
+Evidencia:
+- `docs/database/discovery/functional-modules.md`
+- `docs/database/discovery/semantic-analysis.md` (secciones de prefijos y `TIMODULO`)
+
+Regla de diseño recomendada para endpoints:
+- Cuando el resultado mezcle ventas/compras, usar prefijos (`PENUM`, `PLTIPMV`, `DNUM`) + `TIMODULO` para filtrar explícitamente el dominio.
+
+### 10.2 Contraste con SQL productivo de `backend-proscai` (2026-04-30)
+
+Fuente:
+- `/Users/erick/Documents/dev/tuvansa/backend-proscai`
+- `docs/database/discovery/backend-proscai-query-map.md`
+
+Hallazgos prácticos para próximos endpoints:
+- Relación de vendedor comercial en reportes legacy:
+  - `FDOC.DPAR1 -> FAG.AGTNUM` (observada en ventas, charts, dirección, embarques y pedidos).
+- Relación de tipo de movimiento:
+  - en SQL legacy productivo suele usarse `FTIPMV.TICLA = FAXINV.AITIPMV`.
+- Relación de comentarios de pedidos:
+  - `FCOMENT.COMSEQFACT = 1000000000 + FPENC.PESEQ`.
+- Relación de documentos CXC/CXP:
+  - `FAX.DSEQ -> FDOC.DSEQ`,
+  - `FAX.CLISEQ -> FCLI.CLISEQ`,
+  - `FAX.PRVSEQ -> FPRV.PRVSEQ`.
+
+Regla de implementación derivada:
+- Si el requerimiento dice "vendedor" y viene de reporteo comercial legacy, validar primero `DPAR1` (agente) antes de usar `DIUSEQ` (usuario/operador).
+
+### 10.3 Ventas por sucursal (modal Inventarios)
+
+Endpoint nuevo:
+- `GET /api/inventories/:code/sales-by-branch`
+
+SQL base implementado:
+- tablas: `FINV`, `FAXINV`, `FDOC`, `FCLI`
+- llaves: `FAXINV.ISEQ -> FINV.ISEQ`, `FAXINV.DSEQ -> FDOC.DSEQ`, `FAXINV.CLISEQ -> FCLI.CLISEQ`
+- filtros heredados del modal `Ventas por cliente`:
+  - `AIMES=1`
+  - `DESFACT=1`
+  - `DOTROSTXT <> 'POS'`
+  - `DCONTROLPOS = 0`
+- agrupación:
+  - `DSUCURSAL`, `CLICOD`, `CLINOM`
+- columnas:
+  - `SUCURSAL`, `CODIGO`, `CLIENTE`, `CANTIDAD`, `IMPORTE`
+
+### 10.4 Ordenado a proveedores (modal Inventarios)
+
+Endpoint nuevo:
+- `GET /api/inventories/:code/ordered-to-suppliers`
+
+SQL base implementado:
+- tablas: `FINV`, `FPLIN`, `FPENC`, `FPRV`, `FCOMENT`
+- llaves:
+  - `FPLIN.ISEQ -> FINV.ISEQ`
+  - `FPLIN.PESEQ -> FPENC.PESEQ`
+  - `FPENC.PRVSEQ -> FPRV.PRVSEQ`
+  - `FCOMENT.COMSEQFACT = 1000000000 + FPENC.PESEQ`
+- filtros:
+  - `PESPEDIDO = 2` (órdenes de compra)
+  - `PENUM` prefijo `O` (`LIKE 'O%'`)
+- columnas mapeadas:
+  - `CODIGO=PRVCOD`
+  - `DESCRIPCION=PRVNOM`
+  - `OC=PENUM`
+  - `SUCURSAL=PEMULTICIA`
+  - `UM=PLUNIDAD` (fallback `FINV.IUM`)
+  - `PEDIDO=PLCANT`, `SURTIDO=PLSURT`, `RESTA=PLCANT-PLSURT`
+  - `PRECIO=PLPRECI`
+  - `OC_PRV=PENUMELLOS`
+  - `FECHA_E=PEDESDE`, `FECHA=PEFECHA`, `VENCE=PEVENCE`
+  - `ALM=PEALMACEN`
+  - `OBS=CONCAT(COML1..COML5)`
+  - `CONFIRMADO=PLASIGNADO`
+  - `ALTA=PEFECHA`
+  - `CONFIRMADA=PECHAT`
+
+### 10.5 Compras por proveedor (modal Inventarios)
+
+Endpoint nuevo:
+- `GET /api/inventories/:code/purchases-by-supplier`
+
+SQL base implementado:
+- tablas: `FINV`, `FAXINV`, `FDOC`, `FPRV`
+- llaves:
+  - `FAXINV.ISEQ -> FINV.ISEQ`
+  - `FAXINV.DSEQ -> FDOC.DSEQ`
+  - `FAXINV.PRVSEQ -> FPRV.PRVSEQ`
+- filtros:
+  - `AIMES = 1`
+  - `DESFACT = 2` (flujo de compras)
+  - `DCANCELADA = 0`
+  - `PRVSEQ <> 0`
+- agrupación:
+  - `PRVCOD`, `PRVNOM`
+- columnas mapeadas:
+  - `CODIGO = PRVCOD`
+  - `PROVEEDOR = PRVNOM`
+  - `CANTIDAD = SUM(AICANTF)`
+  - `IMPORTE = SUM(AICANTF * AIPRECIO)`
+
+### 10.6 Compras desglosadas (modal Inventarios)
+
+Endpoint nuevo:
+- `GET /api/inventories/:code/purchases-breakdown`
+
+SQL base implementado:
+- tablas: `FINV`, `FAXINV`, `FDOC`, `FPRV`
+- llaves:
+  - `FAXINV.ISEQ -> FINV.ISEQ`
+  - `FAXINV.DSEQ -> FDOC.DSEQ`
+  - `FAXINV.PRVSEQ -> FPRV.PRVSEQ`
+- filtros:
+  - `AIMES = 1`
+  - `DESFACT = 2`
+  - `DCANCELADA = 0`
+  - `PRVSEQ <> 0`
+  - `DEST` / `DMULTICIA` (parametrizable, default `0/1`)
+- columnas mapeadas:
+  - `CODIGO = PRVCOD`
+  - `PROVEEDOR = PRVNOM`
+  - `CANTIDAD = ABS(AICANTF)`
+  - `PRECIO = AIPRECIO`
+  - `DOC = DNUM`
+  - `FECHA = DFECHA`
+  - `PZAS = AIPZAS`
+  - `TC_DOLAR = DTIPOC2`
+  - `IMPORTE_DLLS = AIPRECIO / DTIPOC2` (si `DTIPOC2=0`, entonces `0`)
+
+### 10.7 Compras anuales (modal Inventarios)
+
+Endpoint nuevo:
+- `GET /api/inventories/:code/purchases-annual`
+
+SQL base implementado:
+- tablas: `FINV`, `FAXINV`, `FDOC`, `FPRV`
+- llaves:
+  - `FAXINV.ISEQ -> FINV.ISEQ`
+  - `FAXINV.DSEQ -> FDOC.DSEQ`
+  - `FAXINV.PRVSEQ -> FPRV.PRVSEQ`
+- filtros:
+  - `AIMES = 1`
+  - `DESFACT = 2`
+  - `DCANCELADA = 0`
+  - `PRVSEQ <> 0`
+- agrupación:
+  - `PRVCOD`, `PRVNOM`, `YEAR(DFECHA)`
+- columnas:
+  - `CODIGO = PRVCOD`
+  - `PROVEEDOR = PRVNOM`
+  - `ANIO = YEAR(DFECHA)`
+  - `ENE..DIC = SUM(ABS(AICANTF))` por mes
+  - `TOTAL = SUM(ABS(AICANTF))`
+
+## 11) Bitácora de cambios del documento
 - 2026-04-15: versión inicial creada con FINV/FUNIDAD y relación R-001.
 - 2026-04-15: agregado INV-002 para búsqueda (`ICOD` / `IDESCR`) con `LIKE`.
 - 2026-04-15: agregado INV-003 para paginación (`LIMIT/OFFSET`) en inventarios.
@@ -801,3 +991,12 @@ Cuando se diseñe la nueva DB:
 - 2026-04-29: INV-009 refinado al comportamiento real validado: orden ascendente por fecha, `ALMCANT` por `ALMKEY`, suma con `JOIN FDOC`, defaults `DEST=0/DMULTICIA=1` y fallback sin compañía.
 - 2026-04-30: agregado INV-013 (Ventas desglosadas) como SQL inicial en estado DRAFT y relación al endpoint `sales-breakdown`.
 - 2026-04-30: INV-013 ajustado con base en `VENTAS DESGLOSADAS.pdf` (`EINV#38`): `AIOTROS`, `DTIPOC2`, `DSUCURSAL`, filtros `DEST/DMULTICIA` y orden por `AISEQ DESC`.
+- 2026-04-30: agregado bloque de descubrimiento semántico con resultados de cobertura de joins (`analyze:legacy-semantic`) para guiar futuros endpoints.
+- 2026-04-30: agregado hallazgo de prefijos (`P/X` vs `O`) y clasificación funcional por `FTIPMV.TIMODULO`.
+- 2026-04-30: agregado análisis funcional SQL-driven (`analyze:legacy-functional`) con evidencia por prefijos, tipos y distribución por módulo.
+- 2026-04-30: agregado contraste con backend productivo `backend-proscai` y reglas operativas (`DPAR1`, `TICLA`, `COMSEQFACT`).
+- 2026-04-30: agregado endpoint `sales-by-branch` para Inventarios y su mapeo SQL/joins.
+- 2026-05-04: agregado endpoint `ordered-to-suppliers` para modal Ordenado a proveedores (joins `FPLIN/FPENC/FPRV/FCOMENT` y reglas de filtro por prefijo `O`).
+- 2026-05-04: agregado endpoint `purchases-by-supplier` para modal Compras por proveedor (joins `FAXINV/FDOC/FPRV` con `DESFACT=2`).
+- 2026-05-04: agregado endpoint `purchases-breakdown` para modal Compras desglosadas (`DESFACT=2`, `AIPRECIO/DTIPOC2` para importe en dólares).
+- 2026-05-04: agregado endpoint `purchases-annual` para modal Compras anuales (pivot mensual por proveedor y año).

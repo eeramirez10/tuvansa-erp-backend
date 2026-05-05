@@ -1,9 +1,26 @@
 export type InventoryDetailLegacyRow = {
   ICOD: string;
   IDESCR: string;
+  I2DESCR: string | null;
   IUM: string;
   UDESCR: string | null;
   IFAM: string;
+  IFAM1: string;
+  IFAM2: string;
+  IFAM3: string;
+  IFAM4: string;
+  IFAM5: string;
+  IFAM6: string;
+  IFAM7: string;
+  IFAM8: string;
+  IFAM9: string;
+  IFAML: string;
+  IFAMM: string;
+  IFAMN: string;
+  IFAMO: string;
+  IFAMP: string;
+  IFAMQ: string;
+  IFAMR: string;
   ITIPO: number | string;
   ICT: number | string;
   IBAJA: string | Date;
@@ -210,6 +227,7 @@ type InventoryDetailProps = {
   identity: {
     code: string;
     description: string;
+    extendedDescription: string;
     unitCode: string;
     unitDescription: string | null;
     family: string;
@@ -229,6 +247,24 @@ type InventoryDetailProps = {
     currency2: number | null;
     currency3: number | null;
     adValorem: number | null;
+  };
+  classification: {
+    supplier: string;
+    product: string;
+    type: string;
+    material: string;
+    ends: string;
+    pressureClass: string;
+    cedula: string;
+    measure: string;
+    others: string;
+    origin: string;
+    sativ: string;
+    coating: string;
+    branch: string;
+    brand: string;
+    inv: string;
+    family: string;
   };
   accumulators: {
     lastPurchase: InventoryDate;
@@ -415,6 +451,7 @@ export class InventoryDetailEntity {
   public readonly identity: {
     code: string;
     description: string;
+    extendedDescription: string;
     unitCode: string;
     unitDescription: string | null;
     family: string;
@@ -435,6 +472,24 @@ export class InventoryDetailEntity {
     currency2: number | null;
     currency3: number | null;
     adValorem: number | null;
+  };
+  public readonly classification: {
+    supplier: string;
+    product: string;
+    type: string;
+    material: string;
+    ends: string;
+    pressureClass: string;
+    cedula: string;
+    measure: string;
+    others: string;
+    origin: string;
+    sativ: string;
+    coating: string;
+    branch: string;
+    brand: string;
+    inv: string;
+    family: string;
   };
 
   public readonly accumulators: {
@@ -622,6 +677,7 @@ export class InventoryDetailEntity {
   private constructor(props: InventoryDetailProps) {
     this.identity = props.identity;
     this.pricing = props.pricing;
+    this.classification = props.classification;
     this.accumulators = props.accumulators;
     this.storage = props.storage;
     this.dimensions = props.dimensions;
@@ -697,6 +753,7 @@ export class InventoryDetailEntity {
       identity: {
         code: row.ICOD,
         description: row.IDESCR,
+        extendedDescription: InventoryDetailEntity.asString(row.I2DESCR),
         unitCode: row.IUM,
         unitDescription: row.UDESCR,
         family: row.IFAM,
@@ -716,6 +773,24 @@ export class InventoryDetailEntity {
         currency2: InventoryDetailEntity.asNumber(row.IMONEDA2),
         currency3: InventoryDetailEntity.asNumber(row.IMONEDA3),
         adValorem: InventoryDetailEntity.asNumber(row.IADVALOREM)
+      },
+      classification: {
+        supplier: InventoryDetailEntity.asString(row.IFAM1).trim(),
+        product: InventoryDetailEntity.asString(row.IFAM2).trim(),
+        type: InventoryDetailEntity.asString(row.IFAM3).trim(),
+        material: InventoryDetailEntity.asString(row.IFAM4).trim(),
+        ends: InventoryDetailEntity.asString(row.IFAM5).trim(),
+        pressureClass: InventoryDetailEntity.asString(row.IFAM6).trim(),
+        cedula: InventoryDetailEntity.asString(row.IFAM7).trim(),
+        measure: InventoryDetailEntity.asString(row.IFAM8).trim(),
+        others: InventoryDetailEntity.asString(row.IFAM9).trim(),
+        origin: InventoryDetailEntity.asString(row.IFAML).trim(),
+        sativ: InventoryDetailEntity.asString(row.IFAMM).trim(),
+        coating: InventoryDetailEntity.asString(row.IFAMN).trim(),
+        branch: InventoryDetailEntity.asString(row.IFAMO).trim(),
+        brand: InventoryDetailEntity.asString(row.IFAMP).trim(),
+        inv: InventoryDetailEntity.asString(row.IFAMQ).trim(),
+        family: InventoryDetailEntity.asString(row.IFAMR).trim()
       },
       accumulators: {
         lastPurchase: InventoryDetailEntity.normalizeLegacyDate(row.IULTCPR),

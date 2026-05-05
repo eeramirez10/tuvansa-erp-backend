@@ -5,6 +5,8 @@ import {
 } from "../../../../shared/types/pagination.types";
 import {
   InventoryAuxiliarEntity,
+  InventoryClassificationOptionEntity,
+  InventoryClassificationSelectedEntity,
   InventoryClientSaleEntity,
   InventoryClientOrderEntity,
   InventorySalesBreakdownEntity,
@@ -244,6 +246,30 @@ export class InventoriesService {
       rows,
       totalQuantity,
       totalAmount
+    };
+  }
+
+  public async getInventoryClassificationByCode(code: string): Promise<{
+    selected: InventoryClassificationSelectedEntity | null;
+    options: InventoryClassificationOptionEntity[];
+  }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return {
+        selected: null,
+        options: []
+      };
+    }
+
+    const [selected, options] = await Promise.all([
+      this.inventoriesRepository.findClassificationSelectedByCode(normalizedCode),
+      this.inventoriesRepository.findClassificationOptions()
+    ]);
+
+    return {
+      selected,
+      options
     };
   }
 

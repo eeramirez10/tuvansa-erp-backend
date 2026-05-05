@@ -17,6 +17,11 @@ Si cambias de asistente, pídele que lea primero:
 9. [`docs/database/legacy-logical-model.md`](/Users/erick/Documents/dev/tuvansa-erp-backend/docs/database/legacy-logical-model.md)
 10. [`AI_HANDOFF.md`](/Users/erick/Documents/dev/tuvansa-erp-backend/AI_HANDOFF.md)
 11. [`docs/omnis/OMNIS_TRANSCRIPCIONES_POR_MODULO.md`](/Users/erick/Documents/dev/tuvansa-erp-backend/docs/omnis/OMNIS_TRANSCRIPCIONES_POR_MODULO.md)
+12. [`docs/database/discovery/README.md`](/Users/erick/Documents/dev/tuvansa-erp-backend/docs/database/discovery/README.md)
+13. [`docs/database/discovery/relations-candidate-map.md`](/Users/erick/Documents/dev/tuvansa-erp-backend/docs/database/discovery/relations-candidate-map.md)
+14. [`docs/database/discovery/semantic-analysis.md`](/Users/erick/Documents/dev/tuvansa-erp-backend/docs/database/discovery/semantic-analysis.md)
+15. [`docs/database/discovery/functional-modules.md`](/Users/erick/Documents/dev/tuvansa-erp-backend/docs/database/discovery/functional-modules.md)
+16. [`docs/database/discovery/backend-proscai-query-map.md`](/Users/erick/Documents/dev/tuvansa-erp-backend/docs/database/discovery/backend-proscai-query-map.md)
 
 Regla: no modificar SQL ni endpoints sin revisar esos documentos.
 
@@ -26,6 +31,9 @@ Regla: no modificar SQL ni endpoints sin revisar esos documentos.
 - `npm run dev`
 - `npm run typecheck`
 - `npm run start`
+- `npm run analyze:legacy-db` (genera diccionario de tablas, relaciones candidatas y muestras `LIMIT 10`)
+- `npm run analyze:legacy-semantic` (valida coberturas de joins y genera interpretación por módulo)
+- `npm run analyze:legacy-functional` (descubre módulos funcionales por prefijos/tipos de movimiento)
 
 ## Regla de documentación
 

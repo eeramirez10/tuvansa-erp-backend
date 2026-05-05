@@ -29,6 +29,30 @@ Accept: application/json
 GET {{baseUrl}}/api/inventories/01300938/orders-by-client
 Accept: application/json
 
+### Inventory ordered to suppliers by code
+GET {{baseUrl}}/api/inventories/01300938/ordered-to-suppliers
+Accept: application/json
+
+### Inventory purchases by supplier by code
+GET {{baseUrl}}/api/inventories/01300938/purchases-by-supplier
+Accept: application/json
+
+### Inventory purchases breakdown by code
+GET {{baseUrl}}/api/inventories/01300938/purchases-breakdown?dest=0&multicia=1
+Accept: application/json
+
 ### Inventory sales by client
 GET {{baseUrl}}/api/inventories/01300938/sales-by-client
+Accept: application/json
+
+### Inventory annual sales by code
+GET {{baseUrl}}/api/inventories/01300938/sales-annual
+Accept: application/json
+
+### Inventory annual purchases by code
+GET {{baseUrl}}/api/inventories/01300938/purchases-annual
+Accept: application/json
+
+### Inventory sales by branch
+GET {{baseUrl}}/api/inventories/01300938/sales-by-branch
 Accept: application/json

@@ -195,6 +195,24 @@ export class InventoriesController {
     });
   };
 
+  public getInventoryClassificationByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const classification = await this.inventoriesService.getInventoryClassificationByCode(
+      request.params.code
+    );
+
+    return reply.send({
+      data: classification,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code
+      }
+    });
+  };
+
   public getInventorySalesBreakdownByCode = async (
     request: FastifyRequest<{
       Params: GetInventoryByCodeParams;

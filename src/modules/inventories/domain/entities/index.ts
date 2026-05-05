@@ -23,3 +23,11 @@ export {
   InventorySalesBreakdownEntity,
   type InventorySalesBreakdownLegacyRow
 } from "./inventory-sales-breakdown.entity";
+export {
+  InventoryClassificationOptionEntity,
+  type InventoryClassificationOptionLegacyRow
+} from "./inventory-classification.entity";
+export {
+  InventoryClassificationSelectedEntity,
+  type InventoryClassificationSelectedLegacyRow
+} from "./inventory-classification-selected.entity";

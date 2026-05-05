@@ -3,6 +3,10 @@ import { MySqlClient } from "../../../../db/mysql";
 import {
   InventoryAuxiliarEntity,
   InventoryAuxiliarLegacyRow,
+  InventoryClassificationOptionEntity,
+  InventoryClassificationOptionLegacyRow,
+  InventoryClassificationSelectedEntity,
+  InventoryClassificationSelectedLegacyRow,
   InventoryClientSaleEntity,
   InventoryClientSaleLegacyRow,
   InventoryClientOrderEntity,
@@ -30,13 +34,40 @@ type InventoryAuxiliarRow = RowDataPacket & InventoryAuxiliarLegacyRow;
 type InventoryClientSaleRow = RowDataPacket & InventoryClientSaleLegacyRow;
 type InventoryClientOrderRow = RowDataPacket & InventoryClientOrderLegacyRow;
 type InventorySalesBreakdownRow = RowDataPacket & InventorySalesBreakdownLegacyRow;
+type InventoryClassificationOptionRow = RowDataPacket & InventoryClassificationOptionLegacyRow;
+type InventoryClassificationSelectedRow = RowDataPacket & InventoryClassificationSelectedLegacyRow;
 type CountRow = RowDataPacket & { total: number };
 type QuantityRow = RowDataPacket & { QUANTITY: number | string | null };
 type SumRow = RowDataPacket & { TOTAL: number | string | null };
 
 type CodeRow = RowDataPacket & { ICOD: string };
+type ColumnExistsRow = RowDataPacket & { TOTAL: number | string | null };
 
 export class ProscaiInventoriesRepository implements IInventoriesRepository {
+  private extendedDescriptionConfig: {
+    selectSql: string;
+    joinSql: string;
+  } | null = null;
+
+  private static readonly CLASSIFICATION_SLOT_ORDER: string[] = [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "N",
+    "O"
+  ];
+
   private buildWhere(
     search?: string,
     searchBy: InventorySearchBy = "auto"
@@ -70,6 +101,55 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
       params: [prefixQuery, prefixQuery],
       normalizedSearch
     };
+  }
+
+  private async columnExists(tableName: string, columnName: string): Promise<boolean> {
+    const rows = await MySqlClient.queryReadOnly<ColumnExistsRow[]>(
+      `
+        SELECT COUNT(*) AS TOTAL
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+      `,
+      [tableName, columnName]
+    );
+
+    return Number(rows[0]?.TOTAL ?? 0) > 0;
+  }
+
+  private async resolveExtendedDescriptionConfig(): Promise<{
+    selectSql: string;
+    joinSql: string;
+  }> {
+    if (this.extendedDescriptionConfig) {
+      return this.extendedDescriptionConfig;
+    }
+
+    const hasInvI2Descr = await this.columnExists("finv", "I2DESCR");
+    if (hasInvI2Descr) {
+      this.extendedDescriptionConfig = {
+        selectSql: "COALESCE(NULLIF(f.I2DESCR, ''), f.IDESCR) AS I2DESCR,",
+        joinSql: ""
+      };
+      return this.extendedDescriptionConfig;
+    }
+
+    const hasInv2I2Descr = await this.columnExists("finv2", "I2DESCR");
+    const hasInv2I2Key = await this.columnExists("finv2", "I2KEY");
+    if (hasInv2I2Descr && hasInv2I2Key) {
+      this.extendedDescriptionConfig = {
+        selectSql: "COALESCE(NULLIF(f2.I2DESCR, ''), f.IDESCR) AS I2DESCR,",
+        joinSql: "LEFT JOIN finv2 f2 ON TRIM(f2.I2KEY) = TRIM(f.ICOD)"
+      };
+      return this.extendedDescriptionConfig;
+    }
+
+    this.extendedDescriptionConfig = {
+      selectSql: "f.IDESCR AS I2DESCR,",
+      joinSql: ""
+    };
+    return this.extendedDescriptionConfig;
   }
 
   public async findAll({ search, searchBy = "auto", limit, offset }: FindInventoriesParams): Promise<InventoryEntity[]> {
@@ -139,14 +219,34 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
   }
 
   public async findByCode(code: string): Promise<InventoryDetailEntity | null> {
+    const { selectSql: extendedDescriptionSelectSql, joinSql: extendedDescriptionJoinSql } =
+      await this.resolveExtendedDescriptionConfig();
+
     const sql = `
   SELECT
     f.ICOD,
     f.IDESCR,
+    ${extendedDescriptionSelectSql}
     f.IUM,
     f.ITIPO,
     f.ICT,
     f.IFAM,
+    f.IFAM1,
+    f.IFAM2,
+    f.IFAM3,
+    f.IFAM4,
+    f.IFAM5,
+    f.IFAM6,
+    f.IFAM7,
+    f.IFAM8,
+    f.IFAM9,
+    f.IFAML,
+    f.IFAMM,
+    f.IFAMN,
+    f.IFAMO,
+    f.IFAMP,
+    f.IFAMQ,
+    f.IFAMR,
     f.IALTA,
     f.IBAJA,
 
@@ -345,6 +445,7 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
 
     u.UDESCR
   FROM finv f
+  ${extendedDescriptionJoinSql}
   LEFT JOIN funidad u ON u.UCOD = f.IUM
   LEFT JOIN fprv p ON p.PRVCOD = f.IPRV
   WHERE f.ICOD = ?
@@ -602,6 +703,105 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
 
     const rows = await MySqlClient.queryReadOnly<InventoryClientSaleRow[]>(sql, [code]);
     return rows.map((row) => InventoryClientSaleEntity.fromLegacyRow(row));
+  }
+
+  public async findClassificationOptions(): Promise<InventoryClassificationOptionEntity[]> {
+    const sql = `
+      SELECT
+        f.FAMT AS SLOT,
+        f.FAMNUM AS FAMILY,
+        f.FAMDESCR AS DESCRIPTION,
+        f.FAMPADRE AS PARENT,
+        f.FAMCONSEC AS CONSEC
+      FROM ffam f
+      WHERE f.FAMT IN (${ProscaiInventoriesRepository.CLASSIFICATION_SLOT_ORDER.map(() => "?").join(", ")})
+      ORDER BY
+        FIELD(f.FAMT, ${ProscaiInventoriesRepository.CLASSIFICATION_SLOT_ORDER.map(() => "?").join(", ")}),
+        f.FAMCONSEC ASC,
+        f.FAMNUM ASC
+    `;
+
+    const params: string[] = [
+      ...ProscaiInventoriesRepository.CLASSIFICATION_SLOT_ORDER,
+      ...ProscaiInventoriesRepository.CLASSIFICATION_SLOT_ORDER
+    ];
+    const rows = await MySqlClient.queryReadOnly<InventoryClassificationOptionRow[]>(sql, params);
+    return rows.map((row) => InventoryClassificationOptionEntity.fromLegacyRow(row));
+  }
+
+  public async findClassificationSelectedByCode(
+    code: string
+  ): Promise<InventoryClassificationSelectedEntity | null> {
+    const sql = `
+      SELECT
+        f.IFAM1, f.IFAM2, f.IFAM3, f.IFAM4, f.IFAM5, f.IFAM6, f.IFAM7, f.IFAM8,
+        f.IFAM9,
+        COALESCE(NULLIF(f.IFAMA, ''), f.IFAML) AS IFAML,
+        COALESCE(NULLIF(f.IFAMB, ''), f.IFAMM) AS IFAMM,
+        COALESCE(NULLIF(f.IFAMC, ''), f.IFAMN) AS IFAMN,
+        COALESCE(NULLIF(f.IFAMD, ''), f.IFAMO) AS IFAMO,
+        COALESCE(NULLIF(f.IFAME, ''), f.IFAMP) AS IFAMP,
+        f.IFAMQ,
+        CASE
+          WHEN NULLIF(f.IFAMR, '') IS NOT NULL THEN
+            CASE
+              WHEN LEFT(f.IFAMR, 1) = 'O' THEN f.IFAMR
+              ELSE CONCAT('O', f.IFAMR)
+            END
+          WHEN NULLIF(f.IFAM, '') IS NOT NULL THEN CONCAT('O', f.IFAM)
+          ELSE ''
+        END AS IFAMR,
+        COALESCE(f1.FAMDESCR, '') AS DESCR1,
+        COALESCE(f2.FAMDESCR, '') AS DESCR2,
+        COALESCE(f3.FAMDESCR, '') AS DESCR3,
+        COALESCE(f4.FAMDESCR, '') AS DESCR4,
+        COALESCE(f5.FAMDESCR, '') AS DESCR5,
+        COALESCE(f6.FAMDESCR, '') AS DESCR6,
+        COALESCE(f7.FAMDESCR, '') AS DESCR7,
+        COALESCE(f8.FAMDESCR, '') AS DESCR8,
+        COALESCE(f9.FAMDESCR, '') AS DESCR9,
+        COALESCE(fl.FAMDESCR, '') AS DESCRL,
+        COALESCE(fm.FAMDESCR, '') AS DESCRM,
+        COALESCE(fn.FAMDESCR, '') AS DESCRN,
+        COALESCE(fo.FAMDESCR, '') AS DESCRO,
+        COALESCE(fp.FAMDESCR, '') AS DESCRP,
+        COALESCE(fq.FAMDESCR, '') AS DESCRQ,
+        COALESCE(fr.FAMDESCR, '') AS DESCRR
+      FROM finv f
+      LEFT JOIN ffam f1 ON f1.FAMTNUM = f.IFAM1
+      LEFT JOIN ffam f2 ON f2.FAMTNUM = f.IFAM2
+      LEFT JOIN ffam f3 ON f3.FAMTNUM = f.IFAM3
+      LEFT JOIN ffam f4 ON f4.FAMTNUM = f.IFAM4
+      LEFT JOIN ffam f5 ON f5.FAMTNUM = f.IFAM5
+      LEFT JOIN ffam f6 ON f6.FAMTNUM = f.IFAM6
+      LEFT JOIN ffam f7 ON f7.FAMTNUM = f.IFAM7
+      LEFT JOIN ffam f8 ON f8.FAMTNUM = f.IFAM8
+      LEFT JOIN ffam f9 ON f9.FAMTNUM = f.IFAM9
+      LEFT JOIN ffam fl ON fl.FAMTNUM = COALESCE(NULLIF(f.IFAMA, ''), f.IFAML)
+      LEFT JOIN ffam fm ON fm.FAMTNUM = COALESCE(NULLIF(f.IFAMB, ''), f.IFAMM)
+      LEFT JOIN ffam fn ON fn.FAMTNUM = COALESCE(NULLIF(f.IFAMC, ''), f.IFAMN)
+      LEFT JOIN ffam fo ON fo.FAMTNUM = COALESCE(NULLIF(f.IFAMD, ''), f.IFAMO)
+      LEFT JOIN ffam fp ON fp.FAMTNUM = COALESCE(NULLIF(f.IFAME, ''), f.IFAMP)
+      LEFT JOIN ffam fq ON fq.FAMTNUM = f.IFAMQ
+      LEFT JOIN ffam fr ON fr.FAMTNUM = (
+        CASE
+          WHEN NULLIF(f.IFAMR, '') IS NOT NULL THEN
+            CASE
+              WHEN LEFT(f.IFAMR, 1) = 'O' THEN f.IFAMR
+              ELSE CONCAT('O', f.IFAMR)
+            END
+          WHEN NULLIF(f.IFAM, '') IS NOT NULL THEN CONCAT('O', f.IFAM)
+          ELSE ''
+        END
+      )
+      WHERE f.ICOD = ?
+      LIMIT 1
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryClassificationSelectedRow[]>(sql, [code]);
+    const row = rows[0];
+
+    return row ? InventoryClassificationSelectedEntity.fromLegacyRow(row) : null;
   }
 
   public async findSalesBreakdownByCode(input: {

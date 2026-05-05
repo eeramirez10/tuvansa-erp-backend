@@ -8,7 +8,10 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"No tests yet\""
+    "test": "echo \"No tests yet\"",
+    "analyze:legacy-db": "tsx src/tools/database-discovery/run-legacy-discovery.ts",
+    "analyze:legacy-semantic": "tsx src/tools/database-discovery/run-semantic-analysis.ts",
+    "analyze:legacy-functional": "tsx src/tools/database-discovery/run-functional-analysis.ts"
   },
   "keywords": [
     "fastify",
