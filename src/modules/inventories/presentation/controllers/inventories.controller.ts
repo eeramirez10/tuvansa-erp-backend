@@ -22,6 +22,11 @@ type GetInventorySalesBreakdownQuery = {
   multicia?: string;
 };
 
+type GetInventoryPurchasesBreakdownQuery = {
+  dest?: string;
+  multicia?: string;
+};
+
 export class InventoriesController {
   constructor(private readonly inventoriesService: InventoriesService) {}
 
@@ -245,6 +250,144 @@ export class InventoriesController {
         totalPrice: breakdown.totalPrice,
         destination: destination ?? null,
         multiCompany: multiCompany ?? null
+      }
+    });
+  };
+
+  public getInventorySalesByBranchByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const response = await this.inventoriesService.getInventorySalesByBranchByCode(
+      request.params.code
+    );
+
+    return reply.send({
+      data: response.rows,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: response.rows.length,
+        totalQuantity: response.totalQuantity,
+        totalAmount: response.totalAmount
+      }
+    });
+  };
+
+  public getInventoryAnnualSalesByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const response = await this.inventoriesService.getInventoryAnnualSalesByCode(
+      request.params.code
+    );
+
+    return reply.send({
+      data: response.rows,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: response.rows.length,
+        totals: response.totals
+      }
+    });
+  };
+
+  public getInventoryOrderedSuppliersByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const response = await this.inventoriesService.getInventoryOrderedSuppliersByCode(
+      request.params.code
+    );
+
+    return reply.send({
+      data: response.rows,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: response.rows.length,
+        stock: response.stock,
+        pending: response.pending,
+        total: response.total
+      }
+    });
+  };
+
+  public getInventoryPurchasesBySupplierByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const response = await this.inventoriesService.getInventoryPurchasesBySupplierByCode(
+      request.params.code
+    );
+
+    return reply.send({
+      data: response.rows,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: response.rows.length,
+        totalQuantity: response.totalQuantity,
+        totalAmount: response.totalAmount
+      }
+    });
+  };
+
+  public getInventoryPurchasesBreakdownByCode = async (
+    request: FastifyRequest<{
+      Params: GetInventoryByCodeParams;
+      Querystring: GetInventoryPurchasesBreakdownQuery;
+    }>,
+    reply: FastifyReply
+  ) => {
+    const destinationParsed =
+      request.query.dest === undefined ? undefined : Number(request.query.dest);
+    const multiCompanyParsed =
+      request.query.multicia === undefined ? undefined : Number(request.query.multicia);
+
+    const destination = Number.isFinite(destinationParsed) ? destinationParsed : undefined;
+    const multiCompany = Number.isFinite(multiCompanyParsed) ? multiCompanyParsed : undefined;
+
+    const response = await this.inventoriesService.getInventoryPurchasesBreakdownByCode(
+      request.params.code,
+      destination,
+      multiCompany
+    );
+
+    return reply.send({
+      data: response.rows,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: response.rows.length,
+        destination: destination ?? null,
+        multiCompany: multiCompany ?? null
+      }
+    });
+  };
+
+  public getInventoryAnnualPurchasesByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const response = await this.inventoriesService.getInventoryAnnualPurchasesByCode(
+      request.params.code
+    );
+
+    return reply.send({
+      data: response.rows,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: response.rows.length,
+        totals: response.totals
       }
     });
   };

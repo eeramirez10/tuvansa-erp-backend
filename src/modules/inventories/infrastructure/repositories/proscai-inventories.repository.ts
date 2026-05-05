@@ -13,6 +13,18 @@ import {
   InventoryClientOrderLegacyRow,
   InventorySalesBreakdownEntity,
   InventorySalesBreakdownLegacyRow,
+  InventorySalesByBranchEntity,
+  InventorySalesByBranchLegacyRow,
+  InventoryAnnualSaleEntity,
+  InventoryAnnualSaleLegacyRow,
+  InventoryPurchaseBySupplierEntity,
+  InventoryPurchaseBySupplierLegacyRow,
+  InventoryPurchaseBreakdownEntity,
+  InventoryPurchaseBreakdownLegacyRow,
+  InventoryOrderedSupplierEntity,
+  InventoryOrderedSupplierLegacyRow,
+  InventoryAnnualPurchaseEntity,
+  InventoryAnnualPurchaseLegacyRow,
   InventoryDetailEntity,
   InventoryDetailLegacyRow,
   InventoryEntity,
@@ -34,6 +46,12 @@ type InventoryAuxiliarRow = RowDataPacket & InventoryAuxiliarLegacyRow;
 type InventoryClientSaleRow = RowDataPacket & InventoryClientSaleLegacyRow;
 type InventoryClientOrderRow = RowDataPacket & InventoryClientOrderLegacyRow;
 type InventorySalesBreakdownRow = RowDataPacket & InventorySalesBreakdownLegacyRow;
+type InventorySalesByBranchRow = RowDataPacket & InventorySalesByBranchLegacyRow;
+type InventoryAnnualSaleRow = RowDataPacket & InventoryAnnualSaleLegacyRow;
+type InventoryPurchaseBySupplierRow = RowDataPacket & InventoryPurchaseBySupplierLegacyRow;
+type InventoryPurchaseBreakdownRow = RowDataPacket & InventoryPurchaseBreakdownLegacyRow;
+type InventoryOrderedSupplierRow = RowDataPacket & InventoryOrderedSupplierLegacyRow;
+type InventoryAnnualPurchaseRow = RowDataPacket & InventoryAnnualPurchaseLegacyRow;
 type InventoryClassificationOptionRow = RowDataPacket & InventoryClassificationOptionLegacyRow;
 type InventoryClassificationSelectedRow = RowDataPacket & InventoryClassificationSelectedLegacyRow;
 type CountRow = RowDataPacket & { total: number };
@@ -851,6 +869,219 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
       multiCompany
     ]);
     return rows.map((row) => InventorySalesBreakdownEntity.fromLegacyRow(row));
+  }
+
+  public async findSalesByBranchByCode(code: string): Promise<InventorySalesByBranchEntity[]> {
+    const sql = `
+      SELECT
+        COALESCE(CAST(d.DSUCURSAL AS CHAR), '0') AS SUCURSAL,
+        COALESCE(c.CLICOD, '') AS CODIGO,
+        COALESCE(c.CLINOM, '') AS CLIENTE,
+        ROUND(SUM(COALESCE(ai.AICANTF, 0)), 2) AS CANTIDAD,
+        ROUND(SUM(COALESCE(ai.AICANTF, 0) * COALESCE(ai.AIPRECIO, 0)), 2) AS IMPORTE
+      FROM finv i
+      INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+      INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ
+      LEFT JOIN fcli c ON c.CLISEQ = ai.CLISEQ
+      WHERE i.ICOD = ?
+        AND COALESCE(ai.CLISEQ, 0) <> 0
+        AND COALESCE(ai.AIMES, 0) = 1
+        AND COALESCE(d.DESFACT, 0) = 1
+        AND COALESCE(d.DOTROSTXT, '') <> 'POS'
+        AND COALESCE(d.DCONTROLPOS, 0) = 0
+      GROUP BY SUCURSAL, CODIGO, CLIENTE
+      ORDER BY SUCURSAL ASC, CODIGO ASC
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventorySalesByBranchRow[]>(sql, [code]);
+    return rows.map((row) => InventorySalesByBranchEntity.fromLegacyRow(row));
+  }
+
+  public async findAnnualSalesByCode(code: string): Promise<InventoryAnnualSaleEntity[]> {
+    const sql = `
+      SELECT
+        COALESCE(c.CLICOD, '') AS CODIGO,
+        COALESCE(c.CLINOM, '') AS CLIENTE,
+        YEAR(d.DFECHA) AS ANIO,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 1 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS ENE,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 2 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS FEB,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 3 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS MAR,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 4 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS ABR,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 5 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS MAY,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 6 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS JUN,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 7 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS JUL,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 8 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS AGO,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 9 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS SEP,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 10 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS OCT,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 11 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS NOV,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 12 THEN COALESCE(ai.AICANTF, 0) ELSE 0 END), 2) AS DIC,
+        ROUND(SUM(COALESCE(ai.AICANTF, 0)), 2) AS TOTAL
+      FROM finv i
+      INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+      INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ
+      LEFT JOIN fcli c ON c.CLISEQ = ai.CLISEQ
+      WHERE i.ICOD = ?
+        AND COALESCE(ai.CLISEQ, 0) <> 0
+        AND COALESCE(ai.AIMES, 0) = 1
+        AND COALESCE(d.DESFACT, 0) = 1
+        AND COALESCE(d.DOTROSTXT, '') <> 'POS'
+        AND COALESCE(d.DCONTROLPOS, 0) = 0
+      GROUP BY CODIGO, CLIENTE, ANIO
+      ORDER BY CODIGO ASC, ANIO ASC
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryAnnualSaleRow[]>(sql, [code]);
+    return rows.map((row) => InventoryAnnualSaleEntity.fromLegacyRow(row));
+  }
+
+  public async findPurchasesBySupplierByCode(
+    code: string
+  ): Promise<InventoryPurchaseBySupplierEntity[]> {
+    const sql = `
+      SELECT
+        COALESCE(p.PRVCOD, '') AS CODIGO,
+        COALESCE(p.PRVNOM, '') AS PROVEEDOR,
+        ROUND(SUM(COALESCE(ai.AICANTF, 0)), 2) AS CANTIDAD,
+        ROUND(SUM(COALESCE(ai.AICANTF, 0) * COALESCE(ai.AIPRECIO, 0)), 2) AS IMPORTE
+      FROM finv i
+      INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+      INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ
+      LEFT JOIN fprv p ON p.PRVSEQ = ai.PRVSEQ
+      WHERE i.ICOD = ?
+        AND COALESCE(ai.AIMES, 0) = 1
+        AND COALESCE(d.DESFACT, 0) = 2
+        AND COALESCE(d.DCANCELADA, 0) = 0
+        AND COALESCE(ai.PRVSEQ, 0) <> 0
+      GROUP BY CODIGO, PROVEEDOR
+      ORDER BY CODIGO ASC
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryPurchaseBySupplierRow[]>(sql, [code]);
+    return rows.map((row) => InventoryPurchaseBySupplierEntity.fromLegacyRow(row));
+  }
+
+  public async findPurchasesBreakdownByCode(input: {
+    code: string;
+    destination?: number;
+    multiCompany?: number;
+  }): Promise<InventoryPurchaseBreakdownEntity[]> {
+    const destination = input.destination ?? 0;
+    const multiCompany = input.multiCompany ?? 1;
+    const sql = `
+      SELECT
+        COALESCE(p.PRVCOD, '') AS CODIGO,
+        COALESCE(p.PRVNOM, '') AS PROVEEDOR,
+        ABS(COALESCE(ai.AICANTF, 0)) AS CANTIDAD,
+        COALESCE(ai.AIPRECIO, 0) AS PRECIO,
+        COALESCE(CAST(d.DNUM AS CHAR), '') AS DOC,
+        COALESCE(d.DFECHA, '1900-12-31') AS FECHA,
+        COALESCE(ai.AIPZAS, 0) AS PZAS,
+        COALESCE(d.DTIPOC2, 0) AS TC_DOLAR,
+        CASE
+          WHEN COALESCE(d.DTIPOC2, 0) = 0 THEN 0
+          ELSE COALESCE(ai.AIPRECIO, 0) / COALESCE(d.DTIPOC2, 0)
+        END AS IMPORTE_DLLS,
+        COALESCE(ai.AISEQ, 0) AS AISEQ_SORT
+      FROM finv i
+      INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+      INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ
+      LEFT JOIN fprv p ON p.PRVSEQ = ai.PRVSEQ
+      WHERE i.ICOD = ?
+        AND COALESCE(ai.AIMES, 0) = 1
+        AND COALESCE(d.DESFACT, 0) = 2
+        AND COALESCE(d.DCANCELADA, 0) = 0
+        AND COALESCE(ai.PRVSEQ, 0) <> 0
+        AND COALESCE(d.DEST, 0) = ?
+        AND COALESCE(d.DMULTICIA, 0) = ?
+      ORDER BY AISEQ_SORT DESC
+      LIMIT 1500
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryPurchaseBreakdownRow[]>(sql, [
+      input.code,
+      destination,
+      multiCompany
+    ]);
+    return rows.map((row) => InventoryPurchaseBreakdownEntity.fromLegacyRow(row));
+  }
+
+  public async findOrderedSuppliersByCode(code: string): Promise<InventoryOrderedSupplierEntity[]> {
+    const sql = `
+      SELECT
+        COALESCE(p.PRVCOD, '') AS CODIGO,
+        COALESCE(p.PRVNOM, '') AS DESCRIPCION,
+        COALESCE(pe.PENUM, '') AS OC,
+        COALESCE(CAST(pe.PEMULTICIA AS CHAR), '') AS SUCURSAL,
+        COALESCE(NULLIF(TRIM(pl.PLUNIDAD), ''), i.IUM, '') AS UM,
+        COALESCE(pl.PLCANT, 0) AS PEDIDO,
+        COALESCE(pl.PLSURT, 0) AS SURTIDO,
+        COALESCE(pl.PLCANT, 0) - COALESCE(pl.PLSURT, 0) AS RESTA,
+        COALESCE(pl.PLPRECI, 0) AS PRECIO,
+        COALESCE(pe.PENUMELLOS, '') AS OC_PRV,
+        COALESCE(pe.PEDESDE, '1900-12-31') AS FECHA_E,
+        COALESCE(pe.PEFECHA, '1900-12-31') AS FECHA,
+        COALESCE(CAST(pe.PEALMACEN AS CHAR), '') AS ALM,
+        TRIM(CONCAT_WS(' ',
+          COALESCE(cm.COML1, ''),
+          COALESCE(cm.COML2, ''),
+          COALESCE(cm.COML3, ''),
+          COALESCE(cm.COML4, ''),
+          COALESCE(cm.COML5, '')
+        )) AS OBS,
+        COALESCE(pl.PLASIGNADO, 0) AS CONFIRMADO,
+        COALESCE(pe.PEVENCE, '1900-12-31') AS VENCE,
+        COALESCE(pe.PEFECHA, '1900-12-31') AS ALTA,
+        COALESCE(pe.PECHAT, '1900-12-31') AS CONFIRMADA
+      FROM finv i
+      INNER JOIN fplin pl ON pl.ISEQ = i.ISEQ
+      INNER JOIN fpenc pe ON pe.PESEQ = pl.PESEQ
+      LEFT JOIN fprv p ON p.PRVSEQ = pe.PRVSEQ
+      LEFT JOIN fcoment cm ON cm.COMSEQFACT = (1000000000 + pe.PESEQ)
+      WHERE i.ICOD = ?
+        AND COALESCE(pe.PESPEDIDO, 0) = 2
+        AND COALESCE(pe.PENUM, '') LIKE 'O%'
+      ORDER BY pe.PEFECHA DESC, pe.PENUM DESC
+      LIMIT 1500
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryOrderedSupplierRow[]>(sql, [code]);
+    return rows.map((row) => InventoryOrderedSupplierEntity.fromLegacyRow(row));
+  }
+
+  public async findAnnualPurchasesByCode(code: string): Promise<InventoryAnnualPurchaseEntity[]> {
+    const sql = `
+      SELECT
+        COALESCE(p.PRVCOD, '') AS CODIGO,
+        COALESCE(p.PRVNOM, '') AS PROVEEDOR,
+        YEAR(d.DFECHA) AS ANIO,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 1 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS ENE,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 2 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS FEB,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 3 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS MAR,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 4 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS ABR,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 5 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS MAY,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 6 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS JUN,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 7 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS JUL,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 8 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS AGO,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 9 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS SEP,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 10 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS OCT,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 11 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS NOV,
+        ROUND(SUM(CASE WHEN MONTH(d.DFECHA) = 12 THEN ABS(COALESCE(ai.AICANTF, 0)) ELSE 0 END), 2) AS DIC,
+        ROUND(SUM(ABS(COALESCE(ai.AICANTF, 0))), 2) AS TOTAL
+      FROM finv i
+      INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+      INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ
+      LEFT JOIN fprv p ON p.PRVSEQ = ai.PRVSEQ
+      WHERE i.ICOD = ?
+        AND COALESCE(ai.AIMES, 0) = 1
+        AND COALESCE(d.DESFACT, 0) = 2
+        AND COALESCE(d.DCANCELADA, 0) = 0
+        AND COALESCE(ai.PRVSEQ, 0) <> 0
+      GROUP BY CODIGO, PROVEEDOR, ANIO
+      ORDER BY CODIGO ASC, ANIO ASC
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryAnnualPurchaseRow[]>(sql, [code]);
+    return rows.map((row) => InventoryAnnualPurchaseEntity.fromLegacyRow(row));
   }
 
   public async findClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]> {

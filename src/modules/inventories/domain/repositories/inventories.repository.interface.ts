@@ -5,6 +5,12 @@ import {
   InventoryClientSaleEntity,
   InventoryClientOrderEntity,
   InventorySalesBreakdownEntity,
+  InventorySalesByBranchEntity,
+  InventoryAnnualSaleEntity,
+  InventoryPurchaseBySupplierEntity,
+  InventoryPurchaseBreakdownEntity,
+  InventoryOrderedSupplierEntity,
+  InventoryAnnualPurchaseEntity,
   InventoryDetailEntity,
   InventoryEntity,
   InventoryWarehouseEntity
@@ -47,6 +53,16 @@ export interface IInventoriesRepository {
     destination?: number;
     multiCompany?: number;
   }): Promise<InventorySalesBreakdownEntity[]>;
+  findSalesByBranchByCode(code: string): Promise<InventorySalesByBranchEntity[]>;
+  findAnnualSalesByCode(code: string): Promise<InventoryAnnualSaleEntity[]>;
+  findPurchasesBySupplierByCode(code: string): Promise<InventoryPurchaseBySupplierEntity[]>;
+  findPurchasesBreakdownByCode(input: {
+    code: string;
+    destination?: number;
+    multiCompany?: number;
+  }): Promise<InventoryPurchaseBreakdownEntity[]>;
+  findOrderedSuppliersByCode(code: string): Promise<InventoryOrderedSupplierEntity[]>;
+  findAnnualPurchasesByCode(code: string): Promise<InventoryAnnualPurchaseEntity[]>;
   findClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]>;
   findNextCode(currentCode: string): Promise<string | null>;
   findPreviousCode(currentCode: string): Promise<string | null>;

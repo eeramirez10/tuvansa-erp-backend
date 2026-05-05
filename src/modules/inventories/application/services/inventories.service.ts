@@ -10,6 +10,12 @@ import {
   InventoryClientSaleEntity,
   InventoryClientOrderEntity,
   InventorySalesBreakdownEntity,
+  InventorySalesByBranchEntity,
+  InventoryAnnualSaleEntity,
+  InventoryPurchaseBySupplierEntity,
+  InventoryPurchaseBreakdownEntity,
+  InventoryOrderedSupplierEntity,
+  InventoryAnnualPurchaseEntity,
   InventoryDetailEntity,
   InventoryEntity,
   InventoryWarehouseEntity
@@ -301,5 +307,180 @@ export class InventoriesService {
       totalQuantity,
       totalPrice
     };
+  }
+
+  public async getInventorySalesByBranchByCode(
+    code: string
+  ): Promise<{ rows: InventorySalesByBranchEntity[]; totalQuantity: number; totalAmount: number }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return { rows: [], totalQuantity: 0, totalAmount: 0 };
+    }
+
+    const rows = await this.inventoriesRepository.findSalesByBranchByCode(normalizedCode);
+    const totalQuantity = rows.reduce((acc, row) => acc + (row.quantity ?? 0), 0);
+    const totalAmount = rows.reduce((acc, row) => acc + (row.amount ?? 0), 0);
+
+    return { rows, totalQuantity, totalAmount };
+  }
+
+  public async getInventoryAnnualSalesByCode(
+    code: string
+  ): Promise<{
+    rows: InventoryAnnualSaleEntity[];
+    totals: {
+      ene: number;
+      feb: number;
+      mar: number;
+      abr: number;
+      may: number;
+      jun: number;
+      jul: number;
+      ago: number;
+      sep: number;
+      oct: number;
+      nov: number;
+      dic: number;
+      total: number;
+    };
+  }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return {
+        rows: [],
+        totals: { ene: 0, feb: 0, mar: 0, abr: 0, may: 0, jun: 0, jul: 0, ago: 0, sep: 0, oct: 0, nov: 0, dic: 0, total: 0 }
+      };
+    }
+
+    const rows = await this.inventoriesRepository.findAnnualSalesByCode(normalizedCode);
+    const totals = rows.reduce(
+      (acc, row) => {
+        acc.ene += row.ene ?? 0;
+        acc.feb += row.feb ?? 0;
+        acc.mar += row.mar ?? 0;
+        acc.abr += row.abr ?? 0;
+        acc.may += row.may ?? 0;
+        acc.jun += row.jun ?? 0;
+        acc.jul += row.jul ?? 0;
+        acc.ago += row.ago ?? 0;
+        acc.sep += row.sep ?? 0;
+        acc.oct += row.oct ?? 0;
+        acc.nov += row.nov ?? 0;
+        acc.dic += row.dic ?? 0;
+        acc.total += row.total ?? 0;
+        return acc;
+      },
+      { ene: 0, feb: 0, mar: 0, abr: 0, may: 0, jun: 0, jul: 0, ago: 0, sep: 0, oct: 0, nov: 0, dic: 0, total: 0 }
+    );
+
+    return { rows, totals };
+  }
+
+  public async getInventoryPurchasesBySupplierByCode(
+    code: string
+  ): Promise<{ rows: InventoryPurchaseBySupplierEntity[]; totalQuantity: number; totalAmount: number }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return { rows: [], totalQuantity: 0, totalAmount: 0 };
+    }
+
+    const rows = await this.inventoriesRepository.findPurchasesBySupplierByCode(normalizedCode);
+    const totalQuantity = rows.reduce((acc, row) => acc + (row.quantity ?? 0), 0);
+    const totalAmount = rows.reduce((acc, row) => acc + (row.amount ?? 0), 0);
+
+    return { rows, totalQuantity, totalAmount };
+  }
+
+  public async getInventoryPurchasesBreakdownByCode(
+    code: string,
+    destination?: number,
+    multiCompany?: number
+  ): Promise<{ rows: InventoryPurchaseBreakdownEntity[] }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return { rows: [] };
+    }
+
+    const rows = await this.inventoriesRepository.findPurchasesBreakdownByCode({
+      code: normalizedCode,
+      destination,
+      multiCompany
+    });
+
+    return { rows };
+  }
+
+  public async getInventoryOrderedSuppliersByCode(
+    code: string
+  ): Promise<{ rows: InventoryOrderedSupplierEntity[]; stock: number; pending: number; total: number }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return { rows: [], stock: 0, pending: 0, total: 0 };
+    }
+
+    const rows = await this.inventoriesRepository.findOrderedSuppliersByCode(normalizedCode);
+    const stock = rows.reduce((acc, row) => acc + (row.supplied ?? 0), 0);
+    const pending = rows.reduce((acc, row) => acc + (row.remaining ?? 0), 0);
+    const total = stock + pending;
+
+    return { rows, stock, pending, total };
+  }
+
+  public async getInventoryAnnualPurchasesByCode(
+    code: string
+  ): Promise<{
+    rows: InventoryAnnualPurchaseEntity[];
+    totals: {
+      ene: number;
+      feb: number;
+      mar: number;
+      abr: number;
+      may: number;
+      jun: number;
+      jul: number;
+      ago: number;
+      sep: number;
+      oct: number;
+      nov: number;
+      dic: number;
+      total: number;
+    };
+  }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return {
+        rows: [],
+        totals: { ene: 0, feb: 0, mar: 0, abr: 0, may: 0, jun: 0, jul: 0, ago: 0, sep: 0, oct: 0, nov: 0, dic: 0, total: 0 }
+      };
+    }
+
+    const rows = await this.inventoriesRepository.findAnnualPurchasesByCode(normalizedCode);
+    const totals = rows.reduce(
+      (acc, row) => {
+        acc.ene += row.ene ?? 0;
+        acc.feb += row.feb ?? 0;
+        acc.mar += row.mar ?? 0;
+        acc.abr += row.abr ?? 0;
+        acc.may += row.may ?? 0;
+        acc.jun += row.jun ?? 0;
+        acc.jul += row.jul ?? 0;
+        acc.ago += row.ago ?? 0;
+        acc.sep += row.sep ?? 0;
+        acc.oct += row.oct ?? 0;
+        acc.nov += row.nov ?? 0;
+        acc.dic += row.dic ?? 0;
+        acc.total += row.total ?? 0;
+        return acc;
+      },
+      { ene: 0, feb: 0, mar: 0, abr: 0, may: 0, jun: 0, jul: 0, ago: 0, sep: 0, oct: 0, nov: 0, dic: 0, total: 0 }
+    );
+
+    return { rows, totals };
   }
 }

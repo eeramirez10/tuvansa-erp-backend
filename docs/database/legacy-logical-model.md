@@ -972,6 +972,63 @@ SQL base implementado:
   - `ENE..DIC = SUM(ABS(AICANTF))` por mes
   - `TOTAL = SUM(ABS(AICANTF))`
 
+### 10.8 Ventas mensuales por sucursal (validado contra backend-proscai)
+
+Consulta validada para total de ventas del mes por sucursal usando la misma lógica de `ventas.controller.js` (`DMULTICIA`, `DESFACT=1`, `DSTATUSCFD=3`, exclusión `CT`):
+
+```sql
+SELECT
+  COALESCE(SUM(AICANTF * AIPRECIO), 0) AS IMPORTE_VENTA,
+  COALESCE(SUM(AICANTF), 0) AS CANTIDAD
+FROM FAXINV
+LEFT JOIN FDOC ON FDOC.DSEQ = FAXINV.DSEQ
+LEFT JOIN FINV ON FINV.ISEQ = FAXINV.ISEQ
+WHERE DSTATUSCFD = 3
+  AND DESFACT = 1
+  AND DCANCELADA = 0
+  AND (MID(DNUM,1,1)='F' OR MID(DNUM,1,1)='D' OR MID(DNUM,1,1)='C')
+  AND MID(DNUM,1,2) <> 'CT'
+  AND ITIPO <> 4
+  AND DFECHA >= '2026-04-01'
+  AND DFECHA <  '2026-05-01'
+  AND DMULTICIA = '01';
+```
+
+Notas:
+- En este dominio, sucursal se filtra por `FDOC.DMULTICIA` (no por `DSUCURSAL`).
+- Mapeo de middleware legado: `MEXICO -> '01'`.
+
+### 10.9 Ventas por vendedor (validado contra backend-proscai)
+
+Consulta validada para abril 2026, sucursal México, agrupado por vendedor:
+
+```sql
+SELECT
+  COALESCE(CAST(FDOC.DPAR1 AS CHAR), '') AS vendedor_codigo,
+  COALESCE(FAG.AGCIANAME, '') AS vendedor_nombre,
+  COALESCE(SUM(FAXINV.AICANTF), 0) AS cantidad,
+  COALESCE(SUM(FAXINV.AICANTF * FAXINV.AIPRECIO), 0) AS importe_venta
+FROM FAXINV
+LEFT JOIN FDOC ON FDOC.DSEQ = FAXINV.DSEQ
+LEFT JOIN FINV ON FINV.ISEQ = FAXINV.ISEQ
+LEFT JOIN FAG ON FAG.AGTNUM = FDOC.DPAR1
+WHERE FDOC.DSTATUSCFD = 3
+  AND FDOC.DESFACT = 1
+  AND FDOC.DCANCELADA = 0
+  AND (MID(FDOC.DNUM,1,1)='F' OR MID(FDOC.DNUM,1,1)='D' OR MID(FDOC.DNUM,1,1)='C')
+  AND MID(FDOC.DNUM,1,2) <> 'CT'
+  AND FINV.ITIPO <> 4
+  AND FDOC.DFECHA >= '2026-04-01'
+  AND FDOC.DFECHA <  '2026-05-01'
+  AND FDOC.DMULTICIA = '01'
+GROUP BY COALESCE(CAST(FDOC.DPAR1 AS CHAR), ''), COALESCE(FAG.AGCIANAME, '')
+ORDER BY importe_venta DESC;
+```
+
+Notas:
+- En tu esquema no existe `FAG.AGTCOD`; el código vendedor se toma de `FDOC.DPAR1`.
+- Nombre vendedor: `FAG.AGCIANAME` con join `FAG.AGTNUM = FDOC.DPAR1`.
+
 ## 11) Bitácora de cambios del documento
 - 2026-04-15: versión inicial creada con FINV/FUNIDAD y relación R-001.
 - 2026-04-15: agregado INV-002 para búsqueda (`ICOD` / `IDESCR`) con `LIKE`.
@@ -1000,3 +1057,4 @@ SQL base implementado:
 - 2026-05-04: agregado endpoint `purchases-by-supplier` para modal Compras por proveedor (joins `FAXINV/FDOC/FPRV` con `DESFACT=2`).
 - 2026-05-04: agregado endpoint `purchases-breakdown` para modal Compras desglosadas (`DESFACT=2`, `AIPRECIO/DTIPOC2` para importe en dólares).
 - 2026-05-04: agregado endpoint `purchases-annual` para modal Compras anuales (pivot mensual por proveedor y año).
+- 2026-05-05: agregadas consultas validadas de ventas: total mensual por sucursal (`DMULTICIA`) y ventas por vendedor (`DPAR1 -> FAG.AGTNUM`) con filtros operativos reales de backend-proscai.
