@@ -32,3 +32,41 @@
   - `TC_DOLAR = DTIPOC2`
   - `OC = DREFERELLOS`
   - `SUCURSAL = DSUCURSAL`
+
+## INV-CLIENT-ORDERS-001
+- STATUS: ADJUSTED
+- Endpoint: `GET /api/inventories/:code/orders-by-client?kind=orders|quotes`
+- Tablas: `finv`, `fplin`, `fpenc`, `fcli`
+- Claves:
+  - `finv.ISEQ = fplin.ISEQ`
+  - `fplin.PESEQ = fpenc.PESEQ`
+  - `fplin.CLISEQ = fcli.CLISEQ`
+- Filtros actuales:
+  - `i.ICOD = ?`
+  - `COALESCE(pl.CLISEQ,0) <> 0`
+  - `COALESCE(p.PESPEDIDO,0) = 1` para pedidos
+  - `COALESCE(p.PESPEDIDO,0) = 4` para cotizaciones
+  - `UPPER(p.PENUM) NOT LIKE 'O%'`
+
+## INV-EXT-DESCR-001
+- STATUS: ADJUSTED
+- Endpoint: `GET /api/inventories/:code`
+- Uso UI: modal `Descr. ext.`
+- Tablas: `finv`, `finv2`
+- Claves:
+  - `finv.ISEQ = finv2.I2KEY`
+- Regla funcional:
+  - el campo esperado para descripción extendida es `FINV2.I2DESCR`
+  - `FINV.IDESCR` no debe usarse como fallback funcional
+  - si la instalación legacy expone `FINV.I2DESCR` directamente, puede leerse desde `FINV`; en fallback estructural se usa `FINV2`
+- SQL base documentado:
+```sql
+SELECT
+  f.ICOD,
+  f.IDESCR,
+  f2.I2DESCR AS I2DESCR
+FROM finv f
+LEFT JOIN finv2 f2 ON f2.I2KEY = f.ISEQ
+WHERE f.ICOD = ?
+LIMIT 1;
+```

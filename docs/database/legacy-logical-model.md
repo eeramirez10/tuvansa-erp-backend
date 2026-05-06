@@ -19,6 +19,7 @@ Documentar las relaciones lógicas de la base legacy (aunque no tenga llaves for
 - Llave de negocio principal: `ICOD`
 - Campos clave usados en Inventarios UI:
   - Identidad: `ICOD`, `IDESCR`, `ITIPO`, `IFAM`, `ICT`
+  - Descripción extendida: `I2DESCR` (si existe físicamente en `FINV`) o relación lógica a `FINV2.I2DESCR`
   - Unidad: `IUM`
   - Precios: `ILISTA1..ILISTA6`, `IMONEDA1..IMONEDA3`, `IADVALOREM`
   - Stock/acumulados: `ISTKACT`, `ISTKANT`, `ISTKACU`, `IPEDCLI`, `IPEDPRV`, `IPEDCOTIZ`, `IORDCOTIZ`, `ICONFIRMADO`, `IASIGNADO`, `ISTKPZS`
@@ -84,7 +85,11 @@ Documentar las relaciones lógicas de la base legacy (aunque no tenga llaves for
 ### 3.7 FPENC (Encabezado de pedidos)
 - PK técnica: `PESEQ`
 - Campos clave usados en modal Pedidos por cliente:
-  - `PENUM`, `PENUMELLOS`, `PEDESDE`
+  - `PENUM`, `PENUMELLOS`, `PEDESDE`, `PEVENCE`, `PESPEDIDO`
+- Regla funcional validada para frontend de Inventarios:
+  - `PESPEDIDO = 1` => pedidos por cliente
+  - `PESPEDIDO = 4` => cotizaciones por cliente
+  - `PESPEDIDO = 2` => órdenes de compra / proveedor
 
 ### 3.8 FCLI (Catálogo de clientes)
 - PK técnica: `CLISEQ`
@@ -109,6 +114,13 @@ Documentar las relaciones lógicas de la base legacy (aunque no tenga llaves for
 ### 3.11 FCIA (Configuración de compañía)
 - Uso en Inventarios:
   - `CIANOCOSTOS` (regla de costo para modal Auxiliar)
+
+### 3.12 FINV2 (Extensiones de inventario)
+- Llave lógica principal: `I2KEY`
+- Relación lógica confirmada:
+  - `I2KEY` referencia `FINV.ISEQ`
+- Campo clave usado en modal `Descr. ext.`:
+  - `I2DESCR` (descripción extendida legacy, tipo carácter largo; en operación puede llegar hasta 4800 caracteres)
 
 ## 4) Relaciones lógicas confirmadas
 
@@ -232,6 +244,28 @@ Ejemplo base:
 SELECT ai.AISEQ, c.CLICOD, c.CLINOM
 FROM faxinv ai
 INNER JOIN fcli c ON c.CLISEQ = ai.CLISEQ;
+```
+
+### R-011 (CONFIRMADA)
+- `FINV.ISEQ` -> `FINV2.I2KEY`
+- Tipo: extensión de descripción larga del producto, join recomendado `LEFT JOIN`.
+- Uso actual en Inventarios:
+  - modal `Descr. ext.`
+  - campo esperado por UI: `FINV2.I2DESCR`
+- Regla operativa:
+  - usar `FINV.I2DESCR` solo si la columna existe físicamente en `FINV`
+  - en fallback estructural legacy, resolver la descripción extendida con `FINV.ISEQ = FINV2.I2KEY`
+  - no rellenar `Descr. ext.` con `FINV.IDESCR`
+
+Ejemplo base:
+```sql
+SELECT
+  f.ICOD,
+  f.IDESCR,
+  f2.I2DESCR
+FROM finv f
+LEFT JOIN finv2 f2 ON f2.I2KEY = f.ISEQ
+WHERE f.ICOD = ?;
 ```
 
 ## 5) Reglas de normalización de datos
@@ -578,12 +612,19 @@ INNER JOIN fplin pl ON pl.ISEQ = i.ISEQ
 LEFT JOIN fpenc p ON p.PESEQ = pl.PESEQ
 LEFT JOIN fcli c ON c.CLISEQ = pl.CLISEQ
 WHERE i.ICOD = ?
+  AND COALESCE(p.PESPEDIDO, 0) = ?
+  AND COALESCE(pl.CLISEQ, 0) <> 0
   AND (p.PENUM IS NULL OR UPPER(p.PENUM) NOT LIKE 'O%')
 ORDER BY COALESCE(p.PEDESDE, '1900-12-31') DESC, COALESCE(p.PENUM, 0) DESC, pl.PLSEQ DESC
 LIMIT 1500;
 ```
 Parámetro recomendado:
-- `[code]`
+- `[code, pesPedido]`
+
+Regla de uso:
+- `pesPedido = 1` para el modal **Pedidos por cliente**
+- `pesPedido = 4` para el modal **Cotizaciones por cliente**
+- ambos comparten la misma estructura base y se distinguen por `FPENC.PESPEDIDO`
 
 ### INV-011 (OK - Importación, Producción e Impuestos)
 Propósito: mapear tabs **Importación**, **Producción** e **Impuestos** desde `FINV` en el detalle por código.
@@ -690,6 +731,24 @@ Notas:
 - Regla funcional acordada para API/UI actual:
   - `PRECIO_US = PRECIO / TC_DOLAR` (si `TC_DOLAR=0`, usar `0`).
 - Endpoint implementado: `GET /api/inventories/:code/sales-breakdown?dest=0&multicia=1`.
+
+### INV-014 (OK - Descripción extendida)
+Propósito: poblar el modal **Descr. ext.** con la fuente legacy correcta de texto largo.
+```sql
+SELECT
+  f.ICOD,
+  f.IDESCR,
+  f2.I2DESCR AS I2DESCR
+FROM finv f
+LEFT JOIN finv2 f2 ON f2.I2KEY = f.ISEQ
+WHERE f.ICOD = ?
+LIMIT 1;
+```
+Reglas validadas:
+- La unión correcta es `FINV.ISEQ = FINV2.I2KEY`.
+- El campo funcional esperado por UI es `FINV2.I2DESCR`.
+- `FINV.IDESCR` no debe usarse como fallback funcional para el modal `Descr. ext.`.
+- Si la instalación legacy expone `FINV.I2DESCR` físicamente, puede leerse directo; en caso contrario el fallback estructural correcto es `FINV2`.
 
 ## 7) Mapeo tab Dimensiones (Omnis -> API)
 
@@ -1042,10 +1101,12 @@ Notas:
 - 2026-04-21: agregadas tablas FPLIN/FPENC/FCLI, relaciones R-005/R-006/R-007 e INV-010 para modal Pedidos por cliente (incluye filtro para excluir `PENUM` que inicia con `O`).
 - 2026-04-21: INV-010 ajustado para resolver `ALM` desde `FALM.ALMNUM` (priorizando match por `ALMCDNUM` y fallback por `ALMNUM` numérico).
 - 2026-04-21: INV-010 ampliado con campo `VENCE` desde `FPENC.PEVENCE` para reutilizar endpoint en modal CT.
+- 2026-05-05: INV-010 ajustado para distinguir pedidos vs cotizaciones por `FPENC.PESPEDIDO` (`1=pedido`, `4=cotización`) y exigir `PL.CLISEQ > 0`.
 - 2026-04-21: renumerado SQL de Importación/Producción/Impuestos a INV-011 para evitar colisión de IDs.
 - 2026-04-21: agregadas tablas FAXINV/FDOC/FCIA, relaciones R-008/R-009/R-010 e INV-012 para modal Ventas por cliente.
 - 2026-04-29: INV-009 ampliado con filtro opcional por almacén (`alm`) y regla Omnis para `stock anterior` (`ALMCANT - SUM(AICANT)`).
 - 2026-04-29: INV-009 refinado al comportamiento real validado: orden ascendente por fecha, `ALMCANT` por `ALMKEY`, suma con `JOIN FDOC`, defaults `DEST=0/DMULTICIA=1` y fallback sin compañía.
+- 2026-05-06: agregada tabla `FINV2`, relación `R-011 (FINV.ISEQ -> FINV2.I2KEY)` e `INV-014` para documentar que el modal `Descr. ext.` usa `FINV2.I2DESCR` como fuente legacy de descripción extendida.
 - 2026-04-30: agregado INV-013 (Ventas desglosadas) como SQL inicial en estado DRAFT y relación al endpoint `sales-breakdown`.
 - 2026-04-30: INV-013 ajustado con base en `VENTAS DESGLOSADAS.pdf` (`EINV#38`): `AIOTROS`, `DTIPOC2`, `DSUCURSAL`, filtros `DEST/DMULTICIA` y orden por `AISEQ DESC`.
 - 2026-04-30: agregado bloque de descubrimiento semántico con resultados de cobertura de joins (`analyze:legacy-semantic`) para guiar futuros endpoints.

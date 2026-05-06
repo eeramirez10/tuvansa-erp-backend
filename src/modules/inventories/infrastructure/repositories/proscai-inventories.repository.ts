@@ -36,6 +36,7 @@ import {
   FindInventoryAuxiliarParams,
   FindInventoriesParams,
   IInventoriesRepository,
+  InventoryClientOrderKind,
   InventorySearchBy
 } from "../../domain/repositories/inventories.repository.interface";
 
@@ -147,7 +148,7 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
     const hasInvI2Descr = await this.columnExists("finv", "I2DESCR");
     if (hasInvI2Descr) {
       this.extendedDescriptionConfig = {
-        selectSql: "COALESCE(NULLIF(f.I2DESCR, ''), f.IDESCR) AS I2DESCR,",
+        selectSql: "f.I2DESCR AS I2DESCR,",
         joinSql: ""
       };
       return this.extendedDescriptionConfig;
@@ -157,14 +158,14 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
     const hasInv2I2Key = await this.columnExists("finv2", "I2KEY");
     if (hasInv2I2Descr && hasInv2I2Key) {
       this.extendedDescriptionConfig = {
-        selectSql: "COALESCE(NULLIF(f2.I2DESCR, ''), f.IDESCR) AS I2DESCR,",
-        joinSql: "LEFT JOIN finv2 f2 ON TRIM(f2.I2KEY) = TRIM(f.ICOD)"
+        selectSql: "f2.I2DESCR AS I2DESCR,",
+        joinSql: "LEFT JOIN finv2 f2 ON f2.I2KEY = f.ISEQ"
       };
       return this.extendedDescriptionConfig;
     }
 
     this.extendedDescriptionConfig = {
-      selectSql: "f.IDESCR AS I2DESCR,",
+      selectSql: "'' AS I2DESCR,",
       joinSql: ""
     };
     return this.extendedDescriptionConfig;
@@ -1084,7 +1085,11 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
     return rows.map((row) => InventoryAnnualPurchaseEntity.fromLegacyRow(row));
   }
 
-  public async findClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]> {
+  public async findClientOrdersByCode(
+    code: string,
+    kind: InventoryClientOrderKind
+  ): Promise<InventoryClientOrderEntity[]> {
+    const pesPedido = kind === "quotes" ? 4 : 1;
     const sql = `
       SELECT
         COALESCE(c.CLICOD, '') AS CODIGO,
@@ -1119,12 +1124,14 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
       LEFT JOIN fpenc p ON p.PESEQ = pl.PESEQ
       LEFT JOIN fcli c ON c.CLISEQ = pl.CLISEQ
       WHERE i.ICOD = ?
+        AND COALESCE(p.PESPEDIDO, 0) = ?
+        AND COALESCE(pl.CLISEQ, 0) <> 0
         AND (p.PENUM IS NULL OR UPPER(p.PENUM) NOT LIKE 'O%')
       ORDER BY COALESCE(p.PEDESDE, '1900-12-31') DESC, COALESCE(p.PENUM, 0) DESC, pl.PLSEQ DESC
       LIMIT 1500
     `;
 
-    const rows = await MySqlClient.queryReadOnly<InventoryClientOrderRow[]>(sql, [code]);
+    const rows = await MySqlClient.queryReadOnly<InventoryClientOrderRow[]>(sql, [code, pesPedido]);
     return rows.map((row) => InventoryClientOrderEntity.fromLegacyRow(row));
   }
 

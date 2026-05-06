@@ -32,6 +32,8 @@ export type FindInventoryAuxiliarParams = {
   multiCompany?: number;
 };
 
+export type InventoryClientOrderKind = "orders" | "quotes";
+
 export interface IInventoriesRepository {
   findAll(params: FindInventoriesParams): Promise<InventoryEntity[]>;
   countAll(search?: string, searchBy?: InventorySearchBy): Promise<number>;
@@ -63,7 +65,10 @@ export interface IInventoriesRepository {
   }): Promise<InventoryPurchaseBreakdownEntity[]>;
   findOrderedSuppliersByCode(code: string): Promise<InventoryOrderedSupplierEntity[]>;
   findAnnualPurchasesByCode(code: string): Promise<InventoryAnnualPurchaseEntity[]>;
-  findClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]>;
+  findClientOrdersByCode(
+    code: string,
+    kind: InventoryClientOrderKind
+  ): Promise<InventoryClientOrderEntity[]>;
   findNextCode(currentCode: string): Promise<string | null>;
   findPreviousCode(currentCode: string): Promise<string | null>;
 }

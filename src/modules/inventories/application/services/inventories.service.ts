@@ -22,6 +22,7 @@ import {
 } from "../../domain/entities";
 import {
   IInventoriesRepository,
+  InventoryClientOrderKind,
   InventorySearchBy
 } from "../../domain/repositories/inventories.repository.interface";
 
@@ -221,14 +222,17 @@ export class InventoriesService {
     };
   }
 
-  public async getInventoryClientOrdersByCode(code: string): Promise<InventoryClientOrderEntity[]> {
+  public async getInventoryClientOrdersByCode(
+    code: string,
+    kind: InventoryClientOrderKind
+  ): Promise<InventoryClientOrderEntity[]> {
     const normalizedCode = code.trim();
 
     if (!normalizedCode) {
       return [];
     }
 
-    return this.inventoriesRepository.findClientOrdersByCode(normalizedCode);
+    return this.inventoriesRepository.findClientOrdersByCode(normalizedCode, kind);
   }
 
   public async getInventoryClientSalesByCode(

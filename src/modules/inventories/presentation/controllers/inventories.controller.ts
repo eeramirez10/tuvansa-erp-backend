@@ -27,6 +27,10 @@ type GetInventoryPurchasesBreakdownQuery = {
   multicia?: string;
 };
 
+type GetInventoryClientOrdersQuery = {
+  kind?: "orders" | "quotes";
+};
+
 export class InventoriesController {
   constructor(private readonly inventoriesService: InventoriesService) {}
 
@@ -165,10 +169,17 @@ export class InventoriesController {
   };
 
   public getInventoryClientOrdersByCode = async (
-    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    request: FastifyRequest<{
+      Params: GetInventoryByCodeParams;
+      Querystring: GetInventoryClientOrdersQuery;
+    }>,
     reply: FastifyReply
   ) => {
-    const orders = await this.inventoriesService.getInventoryClientOrdersByCode(request.params.code);
+    const kind = request.query.kind === "quotes" ? "quotes" : "orders";
+    const orders = await this.inventoriesService.getInventoryClientOrdersByCode(
+      request.params.code,
+      kind
+    );
 
     return reply.send({
       data: orders,
@@ -176,7 +187,8 @@ export class InventoriesController {
         module: "inventories",
         source: "repository",
         code: request.params.code,
-        count: orders.length
+        count: orders.length,
+        kind
       }
     });
   };

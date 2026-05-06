@@ -20,7 +20,7 @@ Current strategy:
   - `GET /api/inventories/:code/previous`
   - `GET /api/inventories/:code/warehouses`
   - `GET /api/inventories/:code/auxiliar`
-  - `GET /api/inventories/:code/orders-by-client`
+  - `GET /api/inventories/:code/orders-by-client?kind=orders|quotes`
   - `GET /api/inventories/:code/sales-by-client`
   - `GET /api/inventories/:code/sales-breakdown` (DRAFT tuning against Omnis)
 
@@ -62,6 +62,7 @@ Custom meta currently used by inventories includes:
 - `module`
 - `source`
 - `search`
+- `kind` in `orders-by-client`
 
 ## 6) Read-only safety constraints
 `src/db/mysql.ts` enforces read-only mode:
