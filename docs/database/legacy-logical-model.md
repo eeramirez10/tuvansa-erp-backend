@@ -750,6 +750,101 @@ Reglas validadas:
 - `FINV.IDESCR` no debe usarse como fallback funcional para el modal `Descr. ext.`.
 - Si la instalación legacy expone `FINV.I2DESCR` físicamente, puede leerse directo; en caso contrario el fallback estructural correcto es `FINV2`.
 
+### INV-015 (OK - Auxiliar de lotes)
+Propósito: poblar el modal **Auxiliar de lotes** por producto (`ICOD`) usando `FLOTES` como fuente base y `FAXINV + FDOC` para el detalle de movimientos por lote.
+
+Consulta base de lotes (izquierda del modal):
+```sql
+SELECT
+  lo.LOSEQ AS LOSEQ,
+  COALESCE(lo.LOFECHA, '1900-12-31') AS FECHA,
+  COALESCE(lo.LOCADUCIDAD, '1900-12-31') AS CADUCIDAD,
+  COALESCE(TRIM(lo.LOPEDIM), '') AS PEDIMENTO,
+  COALESCE(TRIM(lo.LOADUANA), '') AS ADUANA,
+  COALESCE(TRIM(lo.LONUM), '') AS LOTE,
+  COALESCE(lo.LOCANT, 0) AS DISPONIBLE,
+  LPAD(CAST(COALESCE(lo.LOALM, 0) AS CHAR), 2, '0') AS ALM,
+  COALESCE(TRIM(lo.LOLOCALIZ), '') AS LOCALIZACION,
+  COALESCE(lo.LOCOSTO, 0) AS COSTO,
+  COALESCE(lo.LOCOSTOADV, 0) AS ADVALOREM
+FROM flotes lo
+INNER JOIN finv i ON i.ISEQ = lo.ISEQ
+WHERE i.ICOD = ?
+ORDER BY COALESCE(lo.LOFECHA, '1900-12-31') DESC, lo.LOSEQ DESC;
+```
+
+Detalle de movimientos por lote (derecha del modal):
+```sql
+SELECT
+  ai.LOSEQ AS LOSEQ,
+  COALESCE(d.DFECHA, '1900-12-31') AS FECHA,
+  COALESCE(CONCAT(COALESCE(t.TICLA, ''), d.DNUM), d.DNUM, '') AS DOC,
+  CASE WHEN COALESCE(ai.AICANT, 0) > 0 THEN COALESCE(ai.AICANT, 0) ELSE 0 END AS ENTRADAS,
+  CASE WHEN COALESCE(ai.AICANT, 0) < 0 THEN ABS(COALESCE(ai.AICANT, 0)) ELSE 0 END AS SALIDAS,
+  LPAD(CAST(COALESCE(ai.AIALMACEN, 0) AS CHAR), 2, '0') AS ALM
+FROM faxinv ai
+LEFT JOIN fdoc d ON d.DSEQ = ai.DSEQ
+LEFT JOIN ftipmv t ON t.TINUM = ai.AITIPMV
+WHERE ai.LOSEQ IN (?,?,...)
+  AND COALESCE(ai.AIMES, 0) = 1
+ORDER BY ai.LOSEQ ASC, COALESCE(d.DFECHA, '1900-12-31') ASC, ai.AISEQ ASC;
+```
+
+Reglas de implementación validadas:
+- En esta base, el pedimento real está en `FLOTES.LOPEDIM` (no `LOPEDIMENTO`).
+- El identificador textual de lote usable en pantalla es `FLOTES.LONUM`.
+- `Advalorem` sale de `FLOTES.LOCOSTOADV`.
+- El join principal para lotes es por `ISEQ`; cuando aplica, se tolera fallback por llave legacy (`LOKEY`) para compatibilidad con instalaciones heterogéneas.
+- Endpoint implementado: `GET /api/inventories/:code/lotes`.
+
+### INV-016 (OK - UEPS/PEPS)
+Propósito: poblar el modal **UEPS/PEPS** con la lógica legacy de Omnis (`EINV#32`) usando `FLOTES` como fuente principal (sin derivar de `FAXINV`).
+
+Fuente Omnis validada (`UEPS PEPS.pdf`):
+- `Define list {LOCANT, LOCOSTO, LOCOSTOADV, LOFECHA, LOKEY, LODOC, LOLOTE, LONUM, LOSEQ, LOCANTINI, LOCADUCIDAD, LOSEQ, LOALM, LOPRV, LOTIPOC2}`.
+- Orden de capas:
+  - si `mid(CIACOMPORTA,46,1)='1'` => UEPS => `LOKEY` descendente.
+  - si `mid(CIACOMPORTA,51,1)='1'` => PEPS => `LOKEY` ascendente.
+
+SQL base aplicado en API:
+```sql
+SELECT
+  COALESCE(lo.LOCANTINI, 0) AS INICIAL,
+  COALESCE(lo.LOCANT, 0) AS CANTIDAD,
+  COALESCE(lo.LOCOSTO, 0) AS COSTO,
+  COALESCE(lo.LOCOSTOADV, 0) AS ADV,
+  COALESCE(lo.LOFECHA, '1900-12-31') AS FECHA,
+  COALESCE(CAST(lo.LODOC AS CHAR), '') AS DOC,
+  COALESCE(CAST(lo.LONUM AS CHAR), '') AS LOTE,
+  COALESCE(lo.LOCADUCIDAD, '1900-12-31') AS CADUCIDAD,
+  COALESCE(NULLIF(TRIM(SUBSTRING(lo.LOKEY, 1, 13)), ''), i.ICOD) AS LLAVE,
+  COALESCE(NULLIF(TRIM(SUBSTRING(lo.LOKEY, 14, 4)), ''), '') AS CLAVE,
+  LPAD(CAST(COALESCE(lo.LOALM, 0) AS CHAR), 2, '0') AS ALM,
+  COALESCE(CAST(lo.LOPRV AS CHAR), '') AS PROVEEDOR,
+  COALESCE(lo.LOTIPOC2, 0) AS TC,
+  CASE
+    WHEN COALESCE(lo.LOTIPOC2, 0) = 0 THEN 1e100
+    ELSE COALESCE(lo.LOCOSTO, 0) / lo.LOTIPOC2
+  END AS COSTO_DLLS,
+  CASE
+    WHEN COALESCE(lo.LOTIPOC2, 0) = 0 THEN 1e100
+    ELSE COALESCE(lo.LOCOSTOADV, 0) / lo.LOTIPOC2
+  END AS ADV_DLLS,
+  CASE
+    WHEN COALESCE(lo.LOTIPOC2, 0) = 0 THEN 1e100
+    ELSE COALESCE(lo.LOCOSTOADV, 0) / lo.LOTIPOC2
+  END AS TOTAL
+FROM flotes lo
+INNER JOIN finv i ON i.ISEQ = lo.ISEQ
+WHERE i.ICOD = ?
+ORDER BY lo.LOKEY DESC -- UEPS (en PEPS va ASC)
+LIMIT 2000;
+```
+
+Notas:
+- En UI actual, la **última columna sin encabezado** se acordó como `LOCOSTOADV / LOTIPOC2`.
+- Endpoint implementado: `GET /api/inventories/:code/ueps-peps`.
+
 ## 7) Mapeo tab Dimensiones (Omnis -> API)
 
 ### 7.1 Confirmado por notas Omnis (EINV#1)
@@ -1107,6 +1202,8 @@ Notas:
 - 2026-04-29: INV-009 ampliado con filtro opcional por almacén (`alm`) y regla Omnis para `stock anterior` (`ALMCANT - SUM(AICANT)`).
 - 2026-04-29: INV-009 refinado al comportamiento real validado: orden ascendente por fecha, `ALMCANT` por `ALMKEY`, suma con `JOIN FDOC`, defaults `DEST=0/DMULTICIA=1` y fallback sin compañía.
 - 2026-05-06: agregada tabla `FINV2`, relación `R-011 (FINV.ISEQ -> FINV2.I2KEY)` e `INV-014` para documentar que el modal `Descr. ext.` usa `FINV2.I2DESCR` como fuente legacy de descripción extendida.
+- 2026-05-06: agregado `INV-015` para modal `Auxiliar de lotes` con mapeo validado de `FLOTES` (`LOPEDIM`, `LONUM`, `LOCOSTOADV`) y detalle de movimientos desde `FAXINV + FDOC`.
+- 2026-05-06: agregado `INV-016` para modal `UEPS/PEPS` con base en `EINV#32` (`UEPS PEPS.pdf`), usando `FLOTES` directo y última columna definida como `LOCOSTOADV / LOTIPOC2`.
 - 2026-04-30: agregado INV-013 (Ventas desglosadas) como SQL inicial en estado DRAFT y relación al endpoint `sales-breakdown`.
 - 2026-04-30: INV-013 ajustado con base en `VENTAS DESGLOSADAS.pdf` (`EINV#38`): `AIOTROS`, `DTIPOC2`, `DSUCURSAL`, filtros `DEST/DMULTICIA` y orden por `AISEQ DESC`.
 - 2026-04-30: agregado bloque de descubrimiento semántico con resultados de cobertura de joins (`analyze:legacy-semantic`) para guiar futuros endpoints.

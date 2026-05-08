@@ -7,6 +7,8 @@ import {
   InventoryAuxiliarEntity,
   InventoryClassificationOptionEntity,
   InventoryClassificationSelectedEntity,
+  InventoryLoteEntity,
+  InventoryUepsPepsEntity,
   InventoryClientSaleEntity,
   InventoryClientOrderEntity,
   InventorySalesBreakdownEntity,
@@ -281,6 +283,26 @@ export class InventoriesService {
       selected,
       options
     };
+  }
+
+  public async getInventoryLotesByCode(code: string): Promise<InventoryLoteEntity[]> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return [];
+    }
+
+    return this.inventoriesRepository.findLotesByCode(normalizedCode);
+  }
+
+  public async getInventoryUepsPepsByCode(code: string): Promise<InventoryUepsPepsEntity[]> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return [];
+    }
+
+    return this.inventoriesRepository.findUepsPepsByCode(normalizedCode);
   }
 
   public async getInventorySalesBreakdownByCode(

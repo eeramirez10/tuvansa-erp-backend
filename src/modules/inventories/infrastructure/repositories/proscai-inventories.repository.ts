@@ -7,6 +7,12 @@ import {
   InventoryClassificationOptionLegacyRow,
   InventoryClassificationSelectedEntity,
   InventoryClassificationSelectedLegacyRow,
+  InventoryLoteEntity,
+  InventoryLoteLegacyRow,
+  InventoryLoteMovementEntity,
+  InventoryLoteMovementLegacyRow,
+  InventoryUepsPepsEntity,
+  InventoryUepsPepsLegacyRow,
   InventoryClientSaleEntity,
   InventoryClientSaleLegacyRow,
   InventoryClientOrderEntity,
@@ -55,18 +61,30 @@ type InventoryOrderedSupplierRow = RowDataPacket & InventoryOrderedSupplierLegac
 type InventoryAnnualPurchaseRow = RowDataPacket & InventoryAnnualPurchaseLegacyRow;
 type InventoryClassificationOptionRow = RowDataPacket & InventoryClassificationOptionLegacyRow;
 type InventoryClassificationSelectedRow = RowDataPacket & InventoryClassificationSelectedLegacyRow;
+type InventoryLoteRow = RowDataPacket & InventoryLoteLegacyRow;
+type InventoryLoteMovementRow = RowDataPacket & InventoryLoteMovementLegacyRow;
+type InventoryUepsPepsRow = RowDataPacket & InventoryUepsPepsLegacyRow;
 type CountRow = RowDataPacket & { total: number };
 type QuantityRow = RowDataPacket & { QUANTITY: number | string | null };
 type SumRow = RowDataPacket & { TOTAL: number | string | null };
 
 type CodeRow = RowDataPacket & { ICOD: string };
 type ColumnExistsRow = RowDataPacket & { TOTAL: number | string | null };
+type ColumnNameRow = RowDataPacket & { COLUMN_NAME: string };
 
 export class ProscaiInventoriesRepository implements IInventoriesRepository {
   private extendedDescriptionConfig: {
     selectSql: string;
     joinSql: string;
   } | null = null;
+  private lotesConfig:
+    | {
+        available: boolean;
+        selectSql: string;
+        lotJoinSql: string;
+        hasLoseqInLots: boolean;
+      }
+    | null = null;
 
   private static readonly CLASSIFICATION_SLOT_ORDER: string[] = [
     "1",
@@ -169,6 +187,132 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
       joinSql: ""
     };
     return this.extendedDescriptionConfig;
+  }
+
+  private async getTableColumns(tableName: string): Promise<Set<string>> {
+    const rows = await MySqlClient.queryReadOnly<ColumnNameRow[]>(
+      `
+        SELECT COLUMN_NAME
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+      `,
+      [tableName]
+    );
+
+    return new Set(rows.map((row) => row.COLUMN_NAME.toUpperCase()));
+  }
+
+  private pickColumn(
+    availableColumns: Set<string>,
+    candidates: string[]
+  ): string | null {
+    for (const candidate of candidates) {
+      if (availableColumns.has(candidate.toUpperCase())) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  private async resolveLotesConfig(): Promise<{
+    available: boolean;
+    selectSql: string;
+    lotJoinSql: string;
+    hasLoseqInLots: boolean;
+  }> {
+    if (this.lotesConfig) {
+      return this.lotesConfig;
+    }
+
+    const lotColumns = await this.getTableColumns("flotes");
+    if (!lotColumns.size) {
+      this.lotesConfig = {
+        available: false,
+        selectSql: "",
+        lotJoinSql: "",
+        hasLoseqInLots: false
+      };
+      return this.lotesConfig;
+    }
+
+    const lotSequenceColumn = this.pickColumn(lotColumns, ["LOSEQ"]);
+    const lotIseqColumn = this.pickColumn(lotColumns, ["ISEQ", "LOISEQ"]);
+    const lotKeyColumn = this.pickColumn(lotColumns, ["LOKEY"]);
+    const lotDateColumn = this.pickColumn(lotColumns, ["LOFECHA", "LOALTA", "FECHA"]);
+    const lotExpiryColumn = this.pickColumn(lotColumns, ["LOVENCE", "LOCADUCIDAD", "CADUCIDAD"]);
+    const lotPedimentoColumn = this.pickColumn(lotColumns, ["LOPEDIM", "LOPEDIMENTO", "PEDIMENTO"]);
+    const lotCustomsColumn = this.pickColumn(lotColumns, ["LOADUANA", "ADUANA"]);
+    const lotNameColumn = this.pickColumn(lotColumns, ["LONUM", "LOLOTE", "LOTE"]);
+    const lotAvailableColumn = this.pickColumn(lotColumns, ["LOCANT", "DISPONIBLE", "LODISPONIBLE"]);
+    const lotWarehouseColumn = this.pickColumn(lotColumns, ["LOALM", "ALM", "ALMNUM", "LOALMACEN"]);
+    const lotLocationColumn = this.pickColumn(lotColumns, ["LOLOCALIZ", "LOCALIZACION", "LOLOCALIZACION"]);
+    const lotCostColumn = this.pickColumn(lotColumns, ["LOCOSTO", "COSTO", "LOPRECIO"]);
+    const lotAdvaloremColumn = this.pickColumn(lotColumns, [
+      "LOCOSTOADV",
+      "LOADVALOREM",
+      "ADVALOREM",
+      "LOADVALOREM"
+    ]);
+
+    const joinByIseqCondition = lotIseqColumn ? `lo.${lotIseqColumn} = i.ISEQ` : null;
+    const joinByLkeyCondition = lotKeyColumn
+      ? `TRIM(SUBSTRING(lo.${lotKeyColumn}, 1, 13)) = TRIM(i.ICOD)`
+      : null;
+    const joinCondition = [joinByIseqCondition, joinByLkeyCondition].filter(Boolean).join(" OR ");
+
+    if (!joinCondition) {
+      this.lotesConfig = {
+        available: false,
+        selectSql: "",
+        lotJoinSql: "",
+        hasLoseqInLots: false
+      };
+      return this.lotesConfig;
+    }
+
+    const lotDateExpr = lotDateColumn ? `COALESCE(lo.${lotDateColumn}, '1900-12-31')` : `'1900-12-31'`;
+    const lotExpiryExpr = lotExpiryColumn
+      ? `COALESCE(lo.${lotExpiryColumn}, '1900-12-31')`
+      : `'1900-12-31'`;
+    const lotPedimentoExpr = lotPedimentoColumn ? `COALESCE(lo.${lotPedimentoColumn}, '')` : `''`;
+    const lotCustomsExpr = lotCustomsColumn ? `COALESCE(CAST(lo.${lotCustomsColumn} AS CHAR), '')` : `''`;
+    const lotNameExpr = lotNameColumn ? `COALESCE(lo.${lotNameColumn}, '')` : `''`;
+    const lotAvailableExpr = lotAvailableColumn ? `COALESCE(lo.${lotAvailableColumn}, 0)` : `0`;
+    const lotWarehouseExpr = lotWarehouseColumn
+      ? `LPAD(CAST(COALESCE(lo.${lotWarehouseColumn}, 0) AS CHAR), 2, '0')`
+      : lotKeyColumn
+        ? `LPAD(RIGHT(TRIM(lo.${lotKeyColumn}), 2), 2, '0')`
+        : `''`;
+    const lotLocationExpr = lotLocationColumn ? `COALESCE(lo.${lotLocationColumn}, '')` : `''`;
+    const lotSequenceExpr = lotSequenceColumn
+      ? `COALESCE(lo.${lotSequenceColumn}, 0)`
+      : `0`;
+    const lotCostExpr = lotCostColumn ? `COALESCE(lo.${lotCostColumn}, 0)` : `0`;
+    const lotAdvaloremExpr = lotAdvaloremColumn ? `COALESCE(lo.${lotAdvaloremColumn}, 0)` : `0`;
+
+    this.lotesConfig = {
+      available: true,
+      hasLoseqInLots: Boolean(lotSequenceColumn),
+      lotJoinSql: `INNER JOIN finv i ON ${joinCondition}`,
+      selectSql: `
+        ${lotSequenceExpr} AS LOSEQ,
+        ${lotDateExpr} AS FECHA,
+        ${lotExpiryExpr} AS CADUCIDAD,
+        ${lotPedimentoExpr} AS PEDIMENTO,
+        ${lotCustomsExpr} AS ADUANA,
+        ${lotNameExpr} AS LOTE,
+        ${lotAvailableExpr} AS DISPONIBLE,
+        ${lotWarehouseExpr} AS ALM,
+        ${lotLocationExpr} AS LOCALIZACION,
+        ${lotSequenceExpr} AS SECUENCIA,
+        ${lotCostExpr} AS COSTO,
+        ${lotAdvaloremExpr} AS ADVALOREM
+      `
+    };
+
+    return this.lotesConfig;
   }
 
   public async findAll({ search, searchBy = "auto", limit, offset }: FindInventoriesParams): Promise<InventoryEntity[]> {
@@ -821,6 +965,143 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
     const row = rows[0];
 
     return row ? InventoryClassificationSelectedEntity.fromLegacyRow(row) : null;
+  }
+
+  public async findLotesByCode(code: string): Promise<InventoryLoteEntity[]> {
+    const config = await this.resolveLotesConfig();
+    if (!config.available) {
+      return [];
+    }
+
+    const lotRows = await MySqlClient.queryReadOnly<InventoryLoteRow[]>(
+      `
+        SELECT
+          ${config.selectSql}
+        FROM flotes lo
+        ${config.lotJoinSql}
+        WHERE i.ICOD = ?
+        ORDER BY FECHA ASC, SECUENCIA ASC
+        LIMIT 2000
+      `,
+      [code]
+    );
+
+    if (!lotRows.length || !config.hasLoseqInLots) {
+      return lotRows.map((row) => InventoryLoteEntity.fromLegacyRow(row, []));
+    }
+
+    const lotKeys = Array.from(
+      new Set(
+        lotRows
+          .map((row) => Number(row.LOSEQ))
+          .filter((value) => Number.isFinite(value) && value > 0)
+      )
+    );
+
+    if (!lotKeys.length) {
+      return lotRows.map((row) => InventoryLoteEntity.fromLegacyRow(row, []));
+    }
+
+    const movementPlaceholders = lotKeys.map(() => "?").join(", ");
+    const movementRows = await MySqlClient.queryReadOnly<InventoryLoteMovementRow[]>(
+      `
+        SELECT
+          ai.LOSEQ AS LOSEQ,
+          COALESCE(d.DFECHA, '1900-12-31') AS FECHA,
+          COALESCE(CAST(d.DNUM AS CHAR), '') AS DOC,
+          CASE
+            WHEN COALESCE(ai.AICANT, 0) > 0 THEN COALESCE(ai.AICANT, 0)
+            ELSE 0
+          END AS ENTRADAS,
+          CASE
+            WHEN COALESCE(ai.AICANT, 0) < 0 THEN ABS(COALESCE(ai.AICANT, 0))
+            ELSE 0
+          END AS SALIDAS,
+          LPAD(CAST(COALESCE(ai.AIALMACEN, 0) AS CHAR), 2, '0') AS ALM
+        FROM faxinv ai
+        LEFT JOIN fdoc d ON d.DSEQ = ai.DSEQ
+        INNER JOIN finv i ON i.ISEQ = ai.ISEQ
+        WHERE i.ICOD = ?
+          AND ai.LOSEQ IN (${movementPlaceholders})
+        ORDER BY ai.LOSEQ ASC, COALESCE(d.DFECHA, '1900-12-31') ASC, ai.AISEQ ASC
+      `,
+      [code, ...lotKeys]
+    );
+
+    const movementMap = new Map<number, InventoryLoteMovementEntity[]>();
+
+    for (const movementRow of movementRows) {
+      const sequence = Number(movementRow.LOSEQ);
+      if (!Number.isFinite(sequence) || sequence <= 0) {
+        continue;
+      }
+
+      const parsed = InventoryLoteMovementEntity.fromLegacyRow(movementRow);
+      const group = movementMap.get(sequence);
+      if (group) {
+        group.push(parsed);
+      } else {
+        movementMap.set(sequence, [parsed]);
+      }
+    }
+
+    return lotRows.map((row) => {
+      const sequence = Number(row.LOSEQ);
+      const movements =
+        Number.isFinite(sequence) && sequence > 0 ? movementMap.get(sequence) ?? [] : [];
+      return InventoryLoteEntity.fromLegacyRow(row, movements);
+    });
+  }
+
+  public async findUepsPepsByCode(code: string): Promise<InventoryUepsPepsEntity[]> {
+    const companyRows = await MySqlClient.queryReadOnly<(RowDataPacket & { CIACOMPORTA: string | null })[]>(
+      `
+        SELECT COALESCE(CIACOMPORTA, '') AS CIACOMPORTA
+        FROM fcia
+        LIMIT 1
+      `
+    );
+    const ciaComporta = companyRows[0]?.CIACOMPORTA ?? "";
+    const isUeps = ciaComporta.slice(45, 46) === "1";
+    const isPeps = ciaComporta.slice(50, 51) === "1";
+    const orderDirection = isPeps && !isUeps ? "ASC" : "DESC";
+
+    const sql = `
+      SELECT
+        COALESCE(lo.LOCANTINI, 0) AS INICIAL,
+        COALESCE(lo.LOCANT, 0) AS CANTIDAD,
+        COALESCE(lo.LOCOSTO, 0) AS COSTO,
+        COALESCE(lo.LOCOSTOADV, 0) AS ADV,
+        COALESCE(lo.LOFECHA, '1900-12-31') AS FECHA,
+        COALESCE(CAST(lo.LODOC AS CHAR), '') AS DOC,
+        COALESCE(CAST(lo.LONUM AS CHAR), '') AS LOTE,
+        COALESCE(lo.LOCADUCIDAD, '1900-12-31') AS CADUCIDAD,
+        COALESCE(NULLIF(TRIM(SUBSTRING(lo.LOKEY, 1, 13)), ''), i.ICOD) AS LLAVE,
+        COALESCE(NULLIF(TRIM(SUBSTRING(lo.LOKEY, 14, 4)), ''), '') AS CLAVE,
+        LPAD(CAST(COALESCE(lo.LOALM, 0) AS CHAR), 2, '0') AS ALM,
+        COALESCE(CAST(lo.LOPRV AS CHAR), '') AS PROVEEDOR,
+        COALESCE(lo.LOTIPOC2, 0) AS TC,
+        CASE
+          WHEN COALESCE(lo.LOTIPOC2, 0) = 0 THEN 1e100
+          ELSE COALESCE(lo.LOCOSTO, 0) / lo.LOTIPOC2
+        END AS COSTO_DLLS,
+        CASE
+          WHEN COALESCE(lo.LOTIPOC2, 0) = 0 THEN 1e100
+          ELSE COALESCE(lo.LOCOSTOADV, 0) / lo.LOTIPOC2
+        END AS ADV_DLLS,
+        CASE
+          WHEN COALESCE(lo.LOTIPOC2, 0) = 0 THEN 1e100
+          ELSE COALESCE(lo.LOCOSTOADV, 0) / lo.LOTIPOC2
+        END AS TOTAL
+      FROM flotes lo
+      INNER JOIN finv i ON i.ISEQ = lo.ISEQ
+      WHERE i.ICOD = ?
+      ORDER BY lo.LOKEY ${orderDirection}
+      LIMIT 2000
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryUepsPepsRow[]>(sql, [code]);
+    return rows.map((row) => InventoryUepsPepsEntity.fromLegacyRow(row));
   }
 
   public async findSalesBreakdownByCode(input: {

@@ -32,6 +32,16 @@ export {
   type InventoryClassificationSelectedLegacyRow
 } from "./inventory-classification-selected.entity";
 export {
+  InventoryLoteEntity,
+  InventoryLoteMovementEntity,
+  type InventoryLoteLegacyRow,
+  type InventoryLoteMovementLegacyRow
+} from "./inventory-lote.entity";
+export {
+  InventoryUepsPepsEntity,
+  type InventoryUepsPepsLegacyRow
+} from "./inventory-ueps-peps.entity";
+export {
   InventorySalesByBranchEntity,
   type InventorySalesByBranchLegacyRow
 } from "./inventory-sales-by-branch.entity";

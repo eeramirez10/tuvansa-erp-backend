@@ -2,6 +2,8 @@ import {
   InventoryAuxiliarEntity,
   InventoryClassificationOptionEntity,
   InventoryClassificationSelectedEntity,
+  InventoryLoteEntity,
+  InventoryUepsPepsEntity,
   InventoryClientSaleEntity,
   InventoryClientOrderEntity,
   InventorySalesBreakdownEntity,
@@ -50,6 +52,8 @@ export interface IInventoriesRepository {
   findClientSalesByCode(code: string): Promise<InventoryClientSaleEntity[]>;
   findClassificationOptions(): Promise<InventoryClassificationOptionEntity[]>;
   findClassificationSelectedByCode(code: string): Promise<InventoryClassificationSelectedEntity | null>;
+  findLotesByCode(code: string): Promise<InventoryLoteEntity[]>;
+  findUepsPepsByCode(code: string): Promise<InventoryUepsPepsEntity[]>;
   findSalesBreakdownByCode(input: {
     code: string;
     destination?: number;

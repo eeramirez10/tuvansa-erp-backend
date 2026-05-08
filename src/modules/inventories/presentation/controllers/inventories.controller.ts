@@ -230,6 +230,40 @@ export class InventoriesController {
     });
   };
 
+  public getInventoryLotesByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const lotes = await this.inventoriesService.getInventoryLotesByCode(request.params.code);
+
+    return reply.send({
+      data: lotes,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: lotes.length
+      }
+    });
+  };
+
+  public getInventoryUepsPepsByCode = async (
+    request: FastifyRequest<{ Params: GetInventoryByCodeParams }>,
+    reply: FastifyReply
+  ) => {
+    const rows = await this.inventoriesService.getInventoryUepsPepsByCode(request.params.code);
+
+    return reply.send({
+      data: rows,
+      meta: {
+        module: "inventories",
+        source: "repository",
+        code: request.params.code,
+        count: rows.length
+      }
+    });
+  };
+
   public getInventorySalesBreakdownByCode = async (
     request: FastifyRequest<{
       Params: GetInventoryByCodeParams;
