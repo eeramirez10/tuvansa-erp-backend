@@ -12,6 +12,10 @@ import {
   InventoryPurchaseBySupplierEntity,
   InventoryPurchaseBreakdownEntity,
   InventoryOrderedSupplierEntity,
+  InventoryQuotedSupplierEntity,
+  InventoryDocumentSearchEntity,
+  InventoryDocumentHeaderEntity,
+  InventoryDocumentLineEntity,
   InventoryAnnualPurchaseEntity,
   InventoryDetailEntity,
   InventoryEntity,
@@ -32,6 +36,24 @@ export type FindInventoryAuxiliarParams = {
   warehouse?: string;
   destination?: number;
   multiCompany?: number;
+};
+
+export type FindInventoryDocumentsSearchParams = {
+  code?: string;
+  tipmv?: string;
+  document?: string;
+  date?: string;
+  ref?: string;
+  ref2?: string;
+  warehouse?: string;
+  provider?: string;
+  client?: string;
+  limit?: number;
+};
+
+export type FindInventoryDocumentDetailParams = {
+  dseq: number;
+  tm?: string;
 };
 
 export type InventoryClientOrderKind = "orders" | "quotes";
@@ -68,6 +90,16 @@ export interface IInventoriesRepository {
     multiCompany?: number;
   }): Promise<InventoryPurchaseBreakdownEntity[]>;
   findOrderedSuppliersByCode(code: string): Promise<InventoryOrderedSupplierEntity[]>;
+  findQuotedSuppliersByCode(input: {
+    code: string;
+    pendingOnly?: boolean;
+  }): Promise<InventoryQuotedSupplierEntity[]>;
+  findDocumentsSearchByCode(
+    input: FindInventoryDocumentsSearchParams
+  ): Promise<InventoryDocumentSearchEntity[]>;
+  findDocumentDetailByDseq(
+    input: FindInventoryDocumentDetailParams
+  ): Promise<{ header: InventoryDocumentHeaderEntity | null; lines: InventoryDocumentLineEntity[] }>;
   findAnnualPurchasesByCode(code: string): Promise<InventoryAnnualPurchaseEntity[]>;
   findClientOrdersByCode(
     code: string,

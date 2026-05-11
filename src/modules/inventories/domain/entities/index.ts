@@ -62,6 +62,20 @@ export {
   type InventoryOrderedSupplierLegacyRow
 } from "./inventory-ordered-supplier.entity";
 export {
+  InventoryQuotedSupplierEntity,
+  type InventoryQuotedSupplierLegacyRow
+} from "./inventory-quoted-supplier.entity";
+export {
   InventoryAnnualPurchaseEntity,
   type InventoryAnnualPurchaseLegacyRow
 } from "./inventory-annual-purchase.entity";
+export {
+  InventoryDocumentSearchEntity,
+  type InventoryDocumentSearchLegacyRow
+} from "./inventory-document-search.entity";
+export {
+  InventoryDocumentHeaderEntity,
+  InventoryDocumentLineEntity,
+  type InventoryDocumentHeaderLegacyRow,
+  type InventoryDocumentLineLegacyRow
+} from "./inventory-document-detail.entity";

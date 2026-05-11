@@ -10,6 +10,8 @@ export class InventoriesRoutes {
     const controller = new InventoriesController(service);
 
     app.get("/inventories", controller.getInventories);
+    app.get("/inventories/documents-search", controller.getInventoryDocumentsSearch);
+    app.get("/inventories/documents/:dseq", controller.getInventoryDocumentDetailByDseqGlobal);
 
     app.get("/inventories/:code/next", controller.getNextInventoryByCode);
     app.get("/inventories/:code/previous", controller.getPreviousInventoryByCode);
@@ -27,6 +29,9 @@ export class InventoriesRoutes {
     app.get("/inventories/:code/annual-sales", controller.getInventoryAnnualSalesByCode);
 
     app.get("/inventories/:code/ordered-suppliers", controller.getInventoryOrderedSuppliersByCode);
+    app.get("/inventories/:code/quoted-suppliers", controller.getInventoryQuotedSuppliersByCode);
+    app.get("/inventories/:code/documents-search", controller.getInventoryDocumentsSearchByCode);
+    app.get("/inventories/:code/documents/:dseq", controller.getInventoryDocumentDetailByDseq);
     app.get("/inventories/:code/purchases-by-supplier", controller.getInventoryPurchasesBySupplierByCode);
     app.get("/inventories/:code/purchases-breakdown", controller.getInventoryPurchasesBreakdownByCode);
     app.get("/inventories/:code/annual-purchases", controller.getInventoryAnnualPurchasesByCode);

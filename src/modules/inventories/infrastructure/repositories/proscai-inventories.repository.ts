@@ -29,6 +29,14 @@ import {
   InventoryPurchaseBreakdownLegacyRow,
   InventoryOrderedSupplierEntity,
   InventoryOrderedSupplierLegacyRow,
+  InventoryQuotedSupplierEntity,
+  InventoryQuotedSupplierLegacyRow,
+  InventoryDocumentSearchEntity,
+  InventoryDocumentSearchLegacyRow,
+  InventoryDocumentHeaderEntity,
+  InventoryDocumentHeaderLegacyRow,
+  InventoryDocumentLineEntity,
+  InventoryDocumentLineLegacyRow,
   InventoryAnnualPurchaseEntity,
   InventoryAnnualPurchaseLegacyRow,
   InventoryDetailEntity,
@@ -40,6 +48,8 @@ import {
 } from "../../domain/entities";
 import {
   FindInventoryAuxiliarParams,
+  FindInventoryDocumentDetailParams,
+  FindInventoryDocumentsSearchParams,
   FindInventoriesParams,
   IInventoriesRepository,
   InventoryClientOrderKind,
@@ -58,6 +68,10 @@ type InventoryAnnualSaleRow = RowDataPacket & InventoryAnnualSaleLegacyRow;
 type InventoryPurchaseBySupplierRow = RowDataPacket & InventoryPurchaseBySupplierLegacyRow;
 type InventoryPurchaseBreakdownRow = RowDataPacket & InventoryPurchaseBreakdownLegacyRow;
 type InventoryOrderedSupplierRow = RowDataPacket & InventoryOrderedSupplierLegacyRow;
+type InventoryQuotedSupplierRow = RowDataPacket & InventoryQuotedSupplierLegacyRow;
+type InventoryDocumentSearchRow = RowDataPacket & InventoryDocumentSearchLegacyRow;
+type InventoryDocumentHeaderRow = RowDataPacket & InventoryDocumentHeaderLegacyRow;
+type InventoryDocumentLineRow = RowDataPacket & InventoryDocumentLineLegacyRow;
 type InventoryAnnualPurchaseRow = RowDataPacket & InventoryAnnualPurchaseLegacyRow;
 type InventoryClassificationOptionRow = RowDataPacket & InventoryClassificationOptionLegacyRow;
 type InventoryClassificationSelectedRow = RowDataPacket & InventoryClassificationSelectedLegacyRow;
@@ -1328,6 +1342,210 @@ export class ProscaiInventoriesRepository implements IInventoriesRepository {
 
     const rows = await MySqlClient.queryReadOnly<InventoryOrderedSupplierRow[]>(sql, [code]);
     return rows.map((row) => InventoryOrderedSupplierEntity.fromLegacyRow(row));
+  }
+
+  public async findQuotedSuppliersByCode(input: {
+    code: string;
+    pendingOnly?: boolean;
+  }): Promise<InventoryQuotedSupplierEntity[]> {
+    const sql = `
+      SELECT
+        COALESCE(p.PRVCOD, '') AS CODIGO,
+        COALESCE(p.PRVNOM, '') AS DESCRIPCION,
+        COALESCE(pe.PENUM, '') AS OC,
+        COALESCE(NULLIF(TRIM(pl.PLUNIDAD), ''), i.IUM, '') AS UM,
+        COALESCE(pl.PLCANT, 0) AS PEDIDO,
+        COALESCE(pl.PLSURT, 0) AS SURTIDO,
+        COALESCE(pl.PLCANT, 0) - COALESCE(pl.PLSURT, 0) AS RESTA,
+        COALESCE(pe.PEFECHA, '1900-12-31') AS FECHA,
+        COALESCE(pe.PEDESDE, '1900-12-31') AS FECHA_E,
+        TRIM(CONCAT_WS(' ',
+          COALESCE(cm.COML1, ''),
+          COALESCE(cm.COML2, ''),
+          COALESCE(cm.COML3, ''),
+          COALESCE(cm.COML4, ''),
+          COALESCE(cm.COML5, '')
+        )) AS OBS,
+        COALESCE(pe.PECHAT, '1900-12-31') AS FECHA_2
+      FROM finv i
+      INNER JOIN fplin pl ON pl.ISEQ = i.ISEQ
+      INNER JOIN fpenc pe ON pe.PESEQ = pl.PESEQ
+      LEFT JOIN fprv p ON p.PRVSEQ = pe.PRVSEQ
+      LEFT JOIN fcoment cm ON cm.COMSEQFACT = (1000000000 + pe.PESEQ)
+      WHERE i.ICOD = ?
+        AND COALESCE(pe.PESPEDIDO, 0) = 5
+        AND (? = 0 OR (COALESCE(pl.PLCANT, 0) - COALESCE(pl.PLSURT, 0)) <> 0)
+      ORDER BY pe.PEFECHA DESC, pe.PENUM DESC
+      LIMIT 1500
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryQuotedSupplierRow[]>(sql, [
+      input.code,
+      input.pendingOnly ? 1 : 0
+    ]);
+    return rows.map((row) => InventoryQuotedSupplierEntity.fromLegacyRow(row));
+  }
+
+  public async findDocumentsSearchByCode(
+    input: FindInventoryDocumentsSearchParams
+  ): Promise<InventoryDocumentSearchEntity[]> {
+    const filters: string[] = ["COALESCE(d.DESINV, 0) = 1"];
+    const params: unknown[] = [];
+
+    const code = input.code?.trim();
+    if (code) {
+      filters.push(`
+        EXISTS (
+          SELECT 1
+          FROM faxinv ai
+          INNER JOIN finv i ON i.ISEQ = ai.ISEQ
+          WHERE ai.DSEQ = d.DSEQ
+            AND i.ICOD = ?
+        )
+      `);
+      params.push(code);
+    }
+
+    const document = input.document?.trim();
+    if (document) {
+      filters.push("COALESCE(CAST(d.DNUM AS CHAR), '') LIKE ?");
+      params.push(`${document}%`);
+    }
+
+    const date = input.date?.trim();
+    if (date) {
+      filters.push("DATE_FORMAT(COALESCE(d.DFECHA, '1900-12-31'), '%d/%m/%Y') LIKE ?");
+      params.push(`${date}%`);
+    }
+
+    const ref = input.ref?.trim();
+    if (ref) {
+      filters.push("COALESCE(CAST(d.DREFER AS CHAR), '') LIKE ?");
+      params.push(`${ref}%`);
+    }
+
+    const ref2 = input.ref2?.trim();
+    if (ref2) {
+      filters.push("COALESCE(CAST(d.DREFERELLOS AS CHAR), '') LIKE ?");
+      params.push(`${ref2}%`);
+    }
+
+    const warehouse = input.warehouse?.trim();
+    if (warehouse) {
+      filters.push("LPAD(CAST(COALESCE(d.DALMACEN, 0) AS CHAR), 2, '0') LIKE ?");
+      params.push(`${warehouse}%`);
+    }
+
+    const provider = input.provider?.trim();
+    if (provider) {
+      filters.push("COALESCE(p.PRVCOD, '') LIKE ?");
+      params.push(`${provider}%`);
+    }
+
+    const client = input.client?.trim();
+    if (client) {
+      filters.push("COALESCE(c.CLICOD, '') LIKE ?");
+      params.push(`${client}%`);
+    }
+
+    const limit = Math.max(1, Math.min(1000, Math.trunc(input.limit ?? 250)));
+
+    const sql = `
+      SELECT
+        d.DSEQ AS DSEQ,
+        COALESCE(CAST(d.DNUM AS CHAR), '') AS DOCUMENTO,
+        COALESCE(d.DFECHA, '1900-12-31') AS FECHA,
+        COALESCE(CAST(d.DREFER AS CHAR), '') AS REF,
+        COALESCE(CAST(d.DREFERELLOS AS CHAR), '') AS REF_2,
+        LPAD(CAST(COALESCE(d.DALMACEN, 0) AS CHAR), 2, '0') AS ALM,
+        COALESCE(p.PRVCOD, '') AS PROVEEDOR,
+        COALESCE(c.CLICOD, '') AS CLIENTE,
+        COALESCE(CAST(d.DITIPMV AS CHAR), '') AS TM
+      FROM fdoc d
+      LEFT JOIN fprv p ON p.PRVSEQ = d.PRVSEQ
+      LEFT JOIN fcli c ON c.CLISEQ = d.CLISEQ
+      WHERE ${filters.join(" AND ")}
+      ORDER BY FECHA DESC, DOCUMENTO DESC
+      LIMIT ${limit}
+    `;
+
+    const rows = await MySqlClient.queryReadOnly<InventoryDocumentSearchRow[]>(sql, params);
+    return rows.map((row) => InventoryDocumentSearchEntity.fromLegacyRow(row));
+  }
+
+  public async findDocumentDetailByDseq(
+    input: FindInventoryDocumentDetailParams
+  ): Promise<{ header: InventoryDocumentHeaderEntity | null; lines: InventoryDocumentLineEntity[] }> {
+    const headerSql = `
+      SELECT
+        COALESCE(CAST(d.DNUM AS CHAR), '') AS DOCUMENTO,
+        COALESCE(CAST(d.DREFER AS CHAR), '') AS REFERENCIA,
+        COALESCE(c.CLICOD, '') AS CLIENTE_CODIGO,
+        COALESCE(c.CLINOM, '') AS CLIENTE_NOMBRE,
+        COALESCE(d.DFECHA, '1900-12-31') AS FECHA,
+        LPAD(CAST(COALESCE(d.DALMACEN, 0) AS CHAR), 2, '0') AS ALMACEN,
+        COALESCE(CAST(d.DITIPMV AS CHAR), '') AS DITIPMV,
+        COALESCE(CAST(d.DESFACT AS CHAR), '') AS DESFACT,
+        COALESCE(CAST(d.DESINV AS CHAR), '') AS DESINV,
+        COALESCE(CAST(d.DALMACEN AS CHAR), '') AS DALMACEN,
+        COALESCE(CAST(d.DIUSEQ AS CHAR), '') AS DIUSEQ
+      FROM fdoc d
+      LEFT JOIN fcli c ON c.CLISEQ = d.CLISEQ
+      WHERE d.DSEQ = ?
+      LIMIT 1
+    `;
+
+    const tm = input.tm?.trim();
+    const lineFilters = ["ai.DSEQ = ?"];
+    const lineParams: unknown[] = [input.dseq];
+
+    if (tm) {
+      lineFilters.push("COALESCE(NULLIF(TRIM(tm.TICLA), ''), CAST(ai.AITIPMV AS CHAR), '') = ?");
+      lineParams.push(tm);
+    }
+
+    const lineSql = `
+      SELECT
+        COALESCE(i.ICOD, '') AS PRODUCTO,
+        COALESCE(i.IDESCR, '') AS DESCRIPCION,
+        CASE
+          WHEN COALESCE(ai.AICANT, 0) >= 0 THEN ABS(COALESCE(ai.AICANT, 0))
+          ELSE 0
+        END AS ENTRADAS,
+        CASE
+          WHEN COALESCE(ai.AICANT, 0) < 0 THEN ABS(COALESCE(ai.AICANT, 0))
+          ELSE 0
+        END AS SALIDAS,
+        COALESCE(NULLIF(TRIM(ai.AIUNIDAD), ''), NULLIF(TRIM(i.IUM), ''), '') AS UM,
+        COALESCE(ai.AICOSTO, 0) AS COSTO,
+        COALESCE(ai.AIPZAS, 0) AS PZAS,
+        LPAD(CAST(COALESCE(ai.AIALMACEN, 0) AS CHAR), 2, '0') AS ALM,
+        CASE
+          WHEN COALESCE(d.DIUSEQ, 0) > 0 THEN COALESCE(ai.AIUSEQ, 0)
+          ELSE COALESCE(d.DIUSEQ, 0)
+        END AS USR,
+        COALESCE(NULLIF(TRIM(tm.TICLA), ''), CAST(ai.AITIPMV AS CHAR), '') AS TM
+      FROM finv i
+      INNER JOIN faxinv ai ON ai.ISEQ = i.ISEQ
+      INNER JOIN fdoc d ON d.DSEQ = ai.DSEQ
+      LEFT JOIN ftipmv tm ON tm.TINUM = ai.AITIPMV
+      WHERE ${lineFilters.join(" AND ")}
+      ORDER BY ai.AISEQ ASC
+      LIMIT 2000
+    `;
+
+    const [headerRows, lineRows] = await Promise.all([
+      MySqlClient.queryReadOnly<InventoryDocumentHeaderRow[]>(headerSql, [input.dseq]),
+      MySqlClient.queryReadOnly<InventoryDocumentLineRow[]>(lineSql, lineParams)
+    ]);
+
+    return {
+      header:
+        headerRows.length > 0
+          ? InventoryDocumentHeaderEntity.fromLegacyRow(headerRows[0])
+          : null,
+      lines: lineRows.map((row) => InventoryDocumentLineEntity.fromLegacyRow(row))
+    };
   }
 
   public async findAnnualPurchasesByCode(code: string): Promise<InventoryAnnualPurchaseEntity[]> {

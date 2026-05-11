@@ -1183,6 +1183,32 @@ Notas:
 - En tu esquema no existe `FAG.AGTCOD`; el código vendedor se toma de `FDOC.DPAR1`.
 - Nombre vendedor: `FAG.AGCIANAME` con join `FAG.AGTNUM = FDOC.DPAR1`.
 
+### 10.10 Cotizado a proveedores (modal Inventarios)
+
+Endpoint nuevo:
+- `GET /api/inventories/:code/quoted-suppliers`
+
+SQL base implementado:
+- tablas: `FINV`, `FPLIN`, `FPENC`, `FPRV`, `FCOMENT`
+- llaves:
+  - `FPLIN.ISEQ -> FINV.ISEQ`
+  - `FPLIN.PESEQ -> FPENC.PESEQ`
+  - `FPENC.PRVSEQ -> FPRV.PRVSEQ`
+  - `FCOMENT.COMSEQFACT = 1000000000 + FPENC.PESEQ`
+- filtros:
+  - `PESPEDIDO = 5` (cotizaciones a proveedor)
+  - filtro opcional `pending=1` para devolver solo renglones con `PLCANT - PLSURT <> 0`
+- columnas mapeadas:
+  - `CODIGO = PRVCOD`
+  - `DESCRIPCION = PRVNOM`
+  - `OC = PENUM`
+  - `UM = PLUNIDAD` (fallback `FINV.IUM`)
+  - `PEDIDO = PLCANT`, `SURTIDO = PLSURT`, `RESTA = PLCANT - PLSURT`
+  - `FECHA = PEFECHA`
+  - `FECHA_E = PEDESDE`
+  - `OBS = CONCAT(COML1..COML5)`
+  - `FECHA_2 = PECHAT`
+
 ## 11) Bitácora de cambios del documento
 - 2026-04-15: versión inicial creada con FINV/FUNIDAD y relación R-001.
 - 2026-04-15: agregado INV-002 para búsqueda (`ICOD` / `IDESCR`) con `LIKE`.
@@ -1216,3 +1242,4 @@ Notas:
 - 2026-05-04: agregado endpoint `purchases-breakdown` para modal Compras desglosadas (`DESFACT=2`, `AIPRECIO/DTIPOC2` para importe en dólares).
 - 2026-05-04: agregado endpoint `purchases-annual` para modal Compras anuales (pivot mensual por proveedor y año).
 - 2026-05-05: agregadas consultas validadas de ventas: total mensual por sucursal (`DMULTICIA`) y ventas por vendedor (`DPAR1 -> FAG.AGTNUM`) con filtros operativos reales de backend-proscai.
+- 2026-05-08: agregado endpoint `quoted-suppliers` para modal Cotizado a proveedores (joins `FPLIN/FPENC/FPRV/FCOMENT`, `PESPEDIDO=5` y filtro opcional de pendientes).

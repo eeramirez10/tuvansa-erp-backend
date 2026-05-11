@@ -17,6 +17,10 @@ import {
   InventoryPurchaseBySupplierEntity,
   InventoryPurchaseBreakdownEntity,
   InventoryOrderedSupplierEntity,
+  InventoryQuotedSupplierEntity,
+  InventoryDocumentHeaderEntity,
+  InventoryDocumentLineEntity,
+  InventoryDocumentSearchEntity,
   InventoryAnnualPurchaseEntity,
   InventoryDetailEntity,
   InventoryEntity,
@@ -455,6 +459,71 @@ export class InventoriesService {
     const total = stock + pending;
 
     return { rows, stock, pending, total };
+  }
+
+  public async getInventoryQuotedSuppliersByCode(
+    code: string,
+    pendingOnly = false
+  ): Promise<{ rows: InventoryQuotedSupplierEntity[]; stock: number; pending: number; total: number }> {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode) {
+      return { rows: [], stock: 0, pending: 0, total: 0 };
+    }
+
+    const rows = await this.inventoriesRepository.findQuotedSuppliersByCode({
+      code: normalizedCode,
+      pendingOnly
+    });
+    const stock = rows.reduce((acc, row) => acc + (row.supplied ?? 0), 0);
+    const pending = rows.reduce((acc, row) => acc + (row.remaining ?? 0), 0);
+    const total = stock + pending;
+
+    return { rows, stock, pending, total };
+  }
+
+  public async getInventoryDocumentsSearchByCode(input: {
+    code?: string;
+    tipmv?: string;
+    document?: string;
+    date?: string;
+    ref?: string;
+    ref2?: string;
+    warehouse?: string;
+    provider?: string;
+    client?: string;
+    limit?: number;
+  }): Promise<InventoryDocumentSearchEntity[]> {
+    const normalizedCode = input.code?.trim();
+
+    return this.inventoriesRepository.findDocumentsSearchByCode({
+      code: normalizedCode,
+      tipmv: input.tipmv,
+      document: input.document,
+      date: input.date,
+      ref: input.ref,
+      ref2: input.ref2,
+      warehouse: input.warehouse,
+      provider: input.provider,
+      client: input.client,
+      limit: input.limit
+    });
+  }
+
+  public async getInventoryDocumentDetailByDseq(input: {
+    dseq: number;
+    tm?: string;
+  }): Promise<{ header: InventoryDocumentHeaderEntity | null; lines: InventoryDocumentLineEntity[] }> {
+    const normalizedDseq = Math.trunc(input.dseq);
+
+    if (!Number.isFinite(normalizedDseq) || normalizedDseq <= 0) {
+      return { header: null, lines: [] };
+    }
+
+    return this.inventoriesRepository.findDocumentDetailByDseq({
+      dseq: normalizedDseq,
+      tm: input.tm
+    });
   }
 
   public async getInventoryAnnualPurchasesByCode(
