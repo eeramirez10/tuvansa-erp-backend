@@ -1,0 +1,292 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN.EINV#10 as at 29/04/2026 (29/04/2026 13:40:54) PAGE 1
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+0 INIT
+---------
+Call procedure MBASE/310 {POCISIONA VENTANA}
+Set current list #L3
+Clear list
+Calculate #1D3 as 0
+If (CIAALIAS='SANTORY')&(#UL=0)
+    ; ESTO ES UNA PRUEBA PARA VER QUE ES MAS RAPIDO SI USAR EL LONG DATA PERO EL CALCULO DEL STOCK LENTO O QUITAR EL LONG DATA Y EL
+    CALCULO RAPIDO
+
+   Yes/No message {NORMAL?}
+   If flag true
+       Define list (Store long data) {DFECHA,DNUM,AICANT,AICOSTO,AITIPMV,AISEQ,DRUTA,#1D3,AIALMACEN,DRUTA,AIUSEQ,DIUSEQ,AIREVAL,AISEQ,LOP
+       EDIM,LOSEQ,DREFER,DREFERELLOS,DSEQ,AIPZAS,AISKU,AICANTF,DREFERELLOS,AIPRECIO}
+   Else
+       Define list {DFECHA,DNUM,AICANT,AICOSTO,AITIPMV,AISEQ,DRUTA,#1D3,AIALMACEN,DRUTA,AIUSEQ,DIUSEQ,AIREVAL,AISEQ,LOPEDIM,LOS
+       EQ,DREFER,DREFERELLOS,DSEQ,AIPZAS,AISKU,AICANTF,DREFERELLOS,AIPRECIO}
+   End If
+
+Else
+  Define list (Store long data) {DFECHA,DNUM,AICANT,AICOSTO,AITIPMV,AISEQ,DRUTA,#1D3,AIALMACEN,DRUTA,AIUSEQ,DIUSEQ,AIREVAL,AISEQ,LOP
+  EDIM,LOSEQ,DREFER,DREFERELLOS,DSEQ,AIPZAS,AISKU,AICANTF,DREFERELLOS,AIPRECIO}
+End If
+
+
+
+
+Call procedure 240 {LOAD DOCTOS}
+Redraw windows (All windows)
+
+1 #4D2
+-----------
+
+2 SortByFecha
+---------------------
+If #CLICK
+   Begin reversible block
+       Set current list #L3
+       Clear sort fields
+       Set sort field DFECHA
+       Set sort field AISEQ
+       Sort list
+       Call procedure 239 {RECALC SALDO}
+       Redraw lists
+   End reversible block
+End If
+
+3 SortByDoc
+------------------
+If #CLICK
+   Begin reversible block
+       Set current list #L3
+       Clear sort fields
+       Set sort field DNUM
+       Sort list
+       Call procedure 239 {RECALC SALDO}
+       Redraw lists
+   End reversible block
+End If
+
+4 SortByTM
+-----------------
+If #CLICK
+   Begin reversible block
+       Set current list #L3
+       Clear sort fields
+       Set sort field AITIPMV
+       Set sort field DFECHA
+       Sort list
+       Call procedure 239 {RECALC SALDO}
+       Redraw lists
+   End reversible block
+End If
+
+5 SortByCosto
+---------------------
+If #CLICK
+   Begin reversible block
+       Set current list #L3
+       Clear sort fields
+       Set sort field AICOSTO
+       Sort list
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN.EINV#10 as at 29/04/2026 (29/04/2026 13:40:54) PAGE 2
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+       Call procedure 239 {RECALC SALDO}
+       Redraw lists
+   End reversible block
+End If
+
+6 SortByEntradas
+-------------------------
+If #CLICK
+   Begin reversible block
+       Set current list #L3
+       Clear sort fields
+       Set sort field AICANT
+       Sort list
+       Call procedure 239 {RECALC SALDO}
+       Redraw lists
+   End reversible block
+End If
+
+7 SortByStock
+--------------------
+If #CLICK
+   Begin reversible block
+       Set current list #L3
+       Clear sort fields
+       Set sort field #1
+       Sort list
+       Call procedure 239 {RECALC SALDO}
+       Redraw lists
+   End reversible block
+End If
+
+8 SortByAlm
+------------------
+If #CLICK
+   Begin reversible block
+       Set current list #L3
+       Clear sort fields
+       Set sort field AIALMACEN
+       Sort list
+       Call procedure 239 {RECALC SALDO}
+       Redraw lists
+   End reversible block
+End If
+
+9 SortByLote
+------------------
+If #CLICK
+   No/Yes message (High position) {Desea recostear el lote?}
+   If flag false
+       Begin reversible block
+          Set current list #L3
+          Clear sort fields
+          Set sort field DRUTA
+          Sort list
+          Call procedure 239 {RECALC SALDO}
+          Redraw lists
+       End reversible block
+   End If
+End If
+
+10 SortByUsr
+-------------------
+If #CLICK
+   Begin reversible block
+       Set current list #L3
+       Clear sort fields
+       Set sort field AIUSEQ
+       Sort list
+       Call procedure 239 {RECALC SALDO}
+       Redraw lists
+   End reversible block
+End If
+
+11 SortByReval
+----------------------
+If #CLICK
+   Begin reversible block
+       Set current list #L3
+       Clear sort fields
+       Set sort field AIUSEQ
+       Sort list
+       Call procedure 239 {RECALC SALDO}
+       Redraw lists
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN.EINV#10 as at 29/04/2026 (29/04/2026 13:40:54) PAGE 3
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   End reversible block
+End If
+
+12 #L3
+----------
+
+13 FiltrarAlm
+------------------
+If #CLICK
+   Local variable VALMA (Character 10000000)
+   Set current list #L3
+   Load from list
+   Calculate VALMA as AIALMACEN
+   Deselect list line(s) (All lines)
+   Clear search format
+   Set search as calculation {AIALMACEN=VALMA} ;; $+
+   Search list (From start,Select matches (OR))
+   Invert selection for line(s) (All lines)
+   Delete selected lines
+   Call procedure 241 (VALMA) {Calc Saldo Inicial del Almacén} ;; !+0049
+   Call procedure 239 {RECALC SALDO}
+   ; If #4<>0 ;; !+0049
+   ; OK message (High position,Large size) {LOS SALDOS REFLEJADOS NO SON LOS REALES DEL ALMACEN SOLO UNA REFERENCIA DE MOVIMIENTOS}
+   ; End If
+   Redraw windows
+End If
+
+14 Filtra XXX
+-------------------
+If #CLICK
+   Local variable VALMA (Character 10000000)
+   Set current list #L3
+   Load from list
+   Calculate VALMA as AIALMACEN
+   Deselect list line(s) (All lines)
+   Clear search format
+   Call procedure MSQL/281 ("AITIPMV='R'") {SET_SEARCH_AS_CALCULATION Calc, SQL_IINF}
+   Search list (From start,Select matches (OR))
+   Invert selection for line(s) (All lines)
+   Delete selected lines
+   Call procedure 239 {RECALC SALDO}
+   Redraw windows
+End If
+
+239 RECALC SALDO
+------------------------------
+Calculate #L as 1
+Calculate #2D3 as #4D3
+Repeat
+   Load from list
+   Calculate #2D3 as #2+AICANT
+   Calculate #1D3 as #2D3
+   Replace line in list
+   Calculate #L as #L+1
+Until #L>#LN
+Calculate #L as 1
+
+240 LOAD DOCTOS
+-----------------------------
+Begin reversible block
+   Set main file {FAXINV}
+   Set current list #L3
+   Clear search format
+   If (CIAALIAS<>'BABY')&(CIAALIAS<>'OMEGA')&(CIAALIAS='SINBIOTIK')
+       Call procedure MSQL/281 ("(AIMES=1)&(DEST=CIAKYT)&(DMULTICIA=LVCIA)") {SET_SEARCH_AS_CALCULATION Calc, SQL_IINF}
+   Else
+       Call procedure MSQL/281 ("(AIMES=1)&(DEST=CIAKYT)&(DMULTICIA=LVCIA)") {SET_SEARCH_AS_CALCULATION Calc, SQL_IINF}                                                                                ;; TENIA QUE NO
+       SALIERAN AICANT=0 PERO NO SE VEN LAS CANCELACIONES
+   End If
+
+   If (CIAOBS=99)|(#SHIFT)
+       If (CIAKYT=1)|(#SHIFT)
+           Clear search format
+           Call procedure MSQL/281 ("(AIMES=1)") {SET_SEARCH_AS_CALCULATION Calc, SQL_IINF}
+       Else
+           Clear search format
+           Call procedure MSQL/281 ("(AIMES=1)&(AIMES=0)") {SET_SEARCH_AS_CALCULATION Calc, SQL_IINF}
+       End If
+   End If
+
+
+End reversible block
+Calculate #4D3 as ISTKANT
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN.EINV#10 as at 29/04/2026 (29/04/2026 13:40:54) PAGE 4
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Clear list
+
+Call procedure MSQL/276 ('FAXINV',ISEQ,kTrue,kTrue,0) {BUILD_LIST_FROM_FILE File,Field, Exact,Search,Limit}
+Calculate #L as 1
+Call procedure 239 {RECALC SALDO}
+
+241 Calc Saldo Inicial del Almacén
+------------------------------------------------
+
+Parameter PALM (Character 10000000)
+
+Call procedure MSQL/251 ('FALM',ALMKEY,jst(ICOD,13,PALM,0),kTrue) {SINGLE_FILE_FIND File,Field,Value Exact}
+
+Calculate #4D3 as ALMCANT-tot(AICANT)
+
+Clear selected files {FALM}
+; !+0049
+
+495 IMPRIME
+--------------------
+Calculate #S3 as 'EINV#10/12'
+Call procedure INICIO/30 {Accesos}
+Calculate #S3 as con('AUXILIAR DE PRODUCTO ',ICOD,' ',IDESCR,' STOCK ANT ',#4D2)
+Calculate #S2 as "jst('Fecha',9,' ',2,chr(9),1,'Doc.',9,chr(9),1,'T.M.',3,chr(9),1,'Costo',-10,chr(9),1,'Entradas',-12,chr(9),1,'Salidas',-11,chr(9),1,'Stock',-11,chr(9),1,'
+',2,'Alm',2,chr(9),1,' ',4,'Lote',8,'Referencia',10,'Pzas',10)"
+Calculate #S1 as "con(jst(DFECHA,-9,chr(9),1),' ',jst(DNUM,7,chr(9),1),' ',jst(AITIPMV,2,chr(9),1),'
+',jst(AICOSTO,'-11N,',chr(9),1,abs(AICANT)*(AICANT>=0),'-11N3E,',chr(9),1,abs(AICANT)*(AICANT<0),'-11N3E,',chr(9),1,#1D3,'-11N,',chr(9),1),' ',jst(AI
+Call procedure INICIO/38 {IMPRIME PANTALLA}
+
+No procedure errors found
+

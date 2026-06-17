@@ -1,0 +1,58 @@
+@baseUrl = http://localhost:3000
+
+### Inventories (all)
+GET {{baseUrl}}/api/inventories
+Accept: application/json
+
+
+### Inventories (search por codigo o descripcion)
+GET {{baseUrl}}/api/inventories?q=TUBO
+Accept: application/json
+
+### Inventories (pagination)
+GET {{baseUrl}}/api/inventories?limit=10&offset=0
+Accept: application/json
+
+### Inventory detail by code
+GET {{baseUrl}}/api/inventories/01100104
+Accept: application/json
+
+### Inventory warehouses by code
+GET {{baseUrl}}/api/inventories/01100104/warehouses
+Accept: application/json
+
+### Inventory auxiliar by code
+GET {{baseUrl}}/api/inventories/01300938/auxiliar
+Accept: application/json
+
+### Inventory orders by client
+GET {{baseUrl}}/api/inventories/01300938/orders-by-client
+Accept: application/json
+
+### Inventory ordered to suppliers by code
+GET {{baseUrl}}/api/inventories/01300938/ordered-to-suppliers
+Accept: application/json
+
+### Inventory purchases by supplier by code
+GET {{baseUrl}}/api/inventories/01300938/purchases-by-supplier
+Accept: application/json
+
+### Inventory purchases breakdown by code
+GET {{baseUrl}}/api/inventories/01300938/purchases-breakdown?dest=0&multicia=1
+Accept: application/json
+
+### Inventory sales by client
+GET {{baseUrl}}/api/inventories/01300938/sales-by-client
+Accept: application/json
+
+### Inventory annual sales by code
+GET {{baseUrl}}/api/inventories/01300938/sales-annual
+Accept: application/json
+
+### Inventory annual purchases by code
+GET {{baseUrl}}/api/inventories/01300938/purchases-annual
+Accept: application/json
+
+### Inventory sales by branch
+GET {{baseUrl}}/api/inventories/01300938/sales-by-branch
+Accept: application/json

@@ -1,0 +1,1048 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026 17:40:22)                                   PAGE 1
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+0 INIT
+---------
+Call procedure MBASE/310 {POCISIONA VENTANA}
+Set window control procedure 100 {EDWC}
+If CIANOCOSTOS
+   Calculate $root.$winds.EINV#1.$objs.1046.$visible as 0
+   Calculate $root.$winds.EINV#1.$objs.1047.$visible as 0
+   Calculate $root.$winds.EINV#1.$objs.1048.$visible as 0
+   ; Calculate $root.$winds.EINV#1.$objs.ISTKACU.$visible as 0
+   ; Calculate $root.$winds.EINV#1.$objs.ICANTAN.$visible as 0
+   If CIAALIAS='TECSIN'
+       Calculate $root.$winds.EINV#1.$objs.IADVALOREM.$visible as 0
+   End If
+End If
+If CIAALIAS='OPERA'
+   Calculate $root.$winds.EINV#1.$objs.1062.$visible as 0
+End If
+
+If (CIAALIAS='MISAC')|(CIAALIAS='ELSOL')
+    Calculate $root.$winds.EINV#1.$objs.1262.$active as 0
+End If
+
+; If CIAALIAS='ACUARIO'
+; Calculate $root.$winds.EINV#1.$objs.1047.$active as 0
+; End If
+If (CIAALIAS='CAPPINI')&(#UL<>8)
+    Calculate $root.$winds.EINV#1.$objs.1043.$active as 0
+End If
+If (CIAALIAS='BABY')&(CIAGRUPO<>1)
+    Calculate $root.$winds.EINV#1.$objs.ICUENTA.$active as 0
+    Calculate $root.$winds.EINV#1.$objs.ICUENTADEV.$active as 0
+End If
+Call procedure 240 {LOAD LISTA}
+Call procedure 239 {SEARCH LISTA}
+;
+; If CIAALIAS='PFEIFER'
+; Open window (Use v1 coordinates) EINV#20
+; End If
+If CIAALIAS='ITT'
+    Open window (Use v1 coordinates) EINV#20//450
+End If
+
+If CIAALIAS='MASKOTA'
+   Calculate $root.$winds.EINV#1.$objs.1127.$unqindex as 1
+End If
+
+If CIAALIAS='KURSON' ;; iva
+   Calculate $root.$winds.EINV#1.$objs.1292.$visible as 1                          ;; !+0067
+   Calculate $root.$winds.EINV#1.$objs.1293.$visible as 1                          ;; !+0067
+   Calculate $root.$winds.EINV#1.$objs.1294.$visible as 1                          ;; !+0067
+End If
+
+1 ICOD
+-----------
+
+2 IDESCR
+---------------
+
+3 UCOD
+------------
+Call procedure MBASE/130 ('FUNIDAD',UCOD) {AUTOFIND UNIVERSAL 'FILE'_FIELD}
+
+4 LISTAA
+--------------
+If #EDATA&(#EM=4)&(#EN='LIBLISTA')
+   Begin reversible block
+       Set current list LIBLISTA
+   End reversible block
+   Calculate IUM as lst(LIBLISTA,UCOD)
+   Call procedure MSQL/251 ('FUNIDAD',UCOD,lst(LIBLISTA,UCOD),kTrue) {SINGLE_FILE_FIND File,Field,Value Exact}
+   Redraw windows
+End If
+
+5 IFAM
+-----------
+
+6 Color y talla
+-------------------
+
+7 MP
+--------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026 17:40:22)                                   PAGE
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+8 PT
+-------
+
+9 JGO
+----------
+
+10 Ensamble
+-------------------
+
+11 Servicio
+----------------
+
+12 ILISTA1
+----------------
+
+13 ILISTA2
+----------------
+
+14 ILISTA3
+----------------
+
+15 ILISTA4
+----------------
+
+16 ILISTA5
+----------------
+
+17 ILISTA6
+----------------
+
+18 IADVALOREM
+-------------------------
+
+19 IMINIMO
+-----------------
+
+20 IMAXIMO
+------------------
+
+21 ILOCALIZ
+-------------------
+
+22 IEAN
+------------
+
+23 IUPC
+------------
+
+24 ICUENTA
+------------------
+
+25 ICUENTADEV
+-------------------------
+
+26 ICUENTADEV
+-------------------------
+
+27 IULTCPR
+------------------
+
+28 IULTVTA
+------------------
+
+29 IASIGNADO
+----------------------
+
+30 ICAMINO
+------------------
+
+31 IPEDCLI
+-----------------
+
+32 IPEDCOTIZ
+---------------------
+
+33 IPEDPRV
+-------------------
+
+34 IORDCOTIZ
+----------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026 17:40:22)                                   PAGE 3
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+35 STOCK
+----------------
+
+36 ISTKANT
+------------------
+
+37 ISTKACU
+------------------
+
+38 ICANTAN
+------------------
+
+39 ICANTAC
+------------------
+
+40 ISTKPZS
+------------------
+
+41 IALTA
+--------------
+
+42 IBAJA
+--------------
+
+43 IPORCIVA
+--------------------
+
+44 IPORCIVA
+--------------------
+
+45 IPORCIVA
+--------------------
+
+46 IMONEDA1
+---------------------
+
+47 IMONEDA2
+---------------------
+
+48 IMONEDA3
+---------------------
+
+49 ^^TITULO1
+--------------------
+
+50 ~ALMACENES
+--------------------------
+If #CLICK
+   Calculate #S3 as 'EINV#1/43'
+   Call procedure INICIO/30 {Accesos}
+   If (CIAALIAS='MOVIS')&(len(ICOD)=CIARAIZ)
+       Open window (Use v1 coordinates) EINV#20A                         ;; !MES       MOVIS SUMA TODOS LOS HIJOS CUANDO ESTA EN LA RAIZ (PODRIA SER PARA TODOS)
+   Else
+       Open window (Use v1 coordinates) EINV#20
+   End If
+End If
+
+51 ~ALTA CT
+-------------------
+If #CLICK
+
+
+   If (CIAALIAS='ADVANCE')&(ITIPO=4)
+       Call procedure 300 {ALTA INV SERVICIOS}
+       Quit procedure
+   End If
+
+   If #SHIFT&#CTRL
+      If CIAALIAS='FERRIONI'
+         Calculate #S3 as 'EINV#1/49SF'
+         Call procedure INICIO/30 {Accesos}
+         Call procedure 205 {Update CyT SOLO PRECIOS}
+         Redraw windows (All windows)
+      Else
+         Calculate #S3 as 'EINV#1/49CS'
+         Call procedure INICIO/30 {Accesos}
+         Open window EIMPNEWART13
+      End If
+   Else If #SHIFT
+      Calculate #S3 as 'EINV#1/49S'
+      Call procedure INICIO/30 {Accesos}
+      Call procedure EINV#1/201 (#COMMAND) {Update CyT}                                ;; !+0025
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026 17:40:22)                                   PAGE 4
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+       Redraw windows (All windows)
+   Else If #CTRL
+       Calculate #S3 as 'EINV#1/49C'
+       Call procedure INICIO/30 {Accesos}
+       Call procedure EINV#1/202 {Update CyT SOLO ESE PRODUCTO} ;; !+0025
+       Redraw windows (All windows)
+   Else
+       If mid(CIAPLUGS,24,1)<>'X'
+           OK message (High position,Large size) {Esta versión no contiene el módulo de COLOR Y TALLA}
+           Quit procedure
+       End If
+       Calculate #S3 as 'EINV#1-49'
+       Call procedure INICIO/30 {Accesos}
+       If len(ICOD)<>CIARAIZ
+           Quit procedure
+       End If
+       Open window EINVCYTALTAINV
+   End If
+End If
+
+52 ~bloquear
+-------------------
+If #CLICK
+   Calculate #S3 as 'EINV#1/64'
+   Call procedure INICIO/30 {Accesos}
+   Call procedure MBASE/100 ('Esta rutina bloquea/desbloquea el producto actual') {AVISO USO RUTINA YES}
+   If (CIAALIAS='MASKOTA')&(ISTKACT>0) ;; NO BLOQUEAR PRODUCTOS CON INV
+       OK message (High position) {NO SE PUEDE BLOQUEAR UN PRODUCTO CON EXISTENCIAS}
+       Quit procedure
+   End If
+   Calculate LVOTROS as ''
+   Call procedure MBASE/67 (LVOTROS,IBAJA,pick(IBAJA=ZSD00,ZSD00,#D)) {Arma LVOTROS}
+   Call procedure MBASE/67 (LVOTROS,IUSEQ,CIAUSRSEQ) {Arma LVOTROS}
+   Call procedure MBASE/67 (LVOTROS,IFECHACAMBIO,#D) {Arma LVOTROS}
+   Call procedure MBASE/69 ('FINV',LVOTROS) {EDITA UN FILE FILE_UOTROS}
+   Redraw windows
+End If
+
+53 ~Clasificar
+-------------------
+If #CLICK
+   Calculate #S3 as 'EINV#1/51'
+   Call procedure INICIO/30 {Accesos}
+   Call procedure MINV/30 {CLOSE ALL INV}
+
+
+   If (CIAALIAS='ZOY')&(#SHIFT)
+       Calculate #S3 as 'EINV#1/51A'
+       Call procedure INICIO/30 {Accesos}
+       ; Open window EINVCYTALTA2 ;; VERSION PARA ENRIQUE LANIADO
+       Open window EINVCYTALTA2A
+       Quit procedure
+   End If
+
+
+   If CIAALIAS='TELYBOR'
+      Open window EINV#25A
+      Quit procedure
+   End If
+
+
+
+
+   Open window (Use v1 coordinates) EINV#25C                          ;; ESTO SELECCIONA DE LISTAS Y RESPETA LA JERARQUIA DE FAMPADRE
+
+
+  ; If #SHIFT&#CTRL
+  ; Open window (Use v1 coordinates) EINV#25C
+  ; Else If #SHIFT|(CIAALIAS='MISAC')|(CIAALIAS='ELSOL')
+  ; Open window (Use v1 coordinates) EINV#25A
+  ; Else
+  ; Open window (Use v1 coordinates) EINV#25
+  ; End If
+End If
+
+54 ~Descripcion extendida
+-------------------------------------
+If #CLICK
+   Calculate #S3 as 'EINV#1/40'
+   Call procedure INICIO/30 {Accesos}
+   If (CIAALIAS='MASKOTA')&#SHIFT                       ;; PARA DLX
+       Quit procedure
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026 17:40:22)                                   PAGE 5
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   End If
+
+
+  Open window (Use v1 coordinates) EINV2#3
+End If
+
+55 ~DESCTOSCLIS
+----------------------------
+If #CLICK
+   Calculate #S3 as 'EINV#1/62'
+   Call procedure INICIO/30 {Accesos}
+   If (CIAALIAS='MISAC')|(CIAALIAS='ELSOL')
+       Open window (Use v1 coordinates) EINV#6AM
+   Else
+       Open window (Use v1 coordinates) EINV#6A
+   End If
+End If
+
+56 ~DESCTOSPRVS
+------------------------------
+If #CLICK
+   Calculate #S3 as 'EINV#1/66'
+   Call procedure INICIO/30 {Accesos}
+   Open window (Use v1 coordinates) EINV#6B
+End If
+
+57 ~Otros
+--------------
+If #CLICK
+   Calculate #S3 as 'MINV27'
+   Call procedure INICIO/30 {Accesos}
+   If #SHIFT&(CIAALIAS='DETALLES')
+       Open window EINV#800
+       Quit procedure
+   End If
+   If #SHIFT&(CIAALIAS='ACUARIO')
+       Open window EINV2#1A
+       Quit procedure
+   End If
+
+  Open window EINV2#1
+End If
+
+58 ~Especificaciones
+------------------------------
+If #CLICK
+   Calculate #S3 as 'MINV27'
+   Call procedure INICIO/30 {Accesos}
+
+  Open window EINV2#3B
+End If
+
+59 ~Foto
+-------------
+If #CLICK
+   If mid(CIAPLUGS,29,1)<>'X'
+       OK message (High position,Large size) {Esta versión no contiene el módulo de FOTOS}
+       Quit procedure
+   End If
+
+   Calculate #S3 as 'EINV#1/46'
+   Call procedure INICIO/30 {Accesos}
+
+   If (ITIPO=0)
+       Open window EINV#36 (ICOD,#SHIFT,2) ;; MATERIA PRIMA A NIVEL COLOR Y TALLA
+   Else
+       Open window EINV#36 (ICOD,#SHIFT) ;; P.T. A NIVEL PAPA
+   End If
+   Local variable VHIJO (Short integer (0 to 255))
+
+End If
+
+60 ~INV CT
+-----------------
+If #CLICK
+   Calculate #S3 as 'EINV#1-48'
+   Call procedure INICIO/30 {Accesos}
+   Local variable VICOD (Character 10000000)
+   Calculate VICOD as ICOD
+   Calculate #F as 1
+   If len(ICOD)>CIARAIZ
+       Call procedure MSQL/261 ('FINV',ICOD,mid(ICOD,1,CIARAIZ),kTrue,kFalse,1) {FIND File,Field,Value, Exact,Search,Limit}
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026 17:40:22)                                   PAGE 6
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   End If
+   If flag true
+       Open window EINVCYTINVCONSULTA
+   Else
+       Call procedure MSQL/261 ('FINV',ICOD,VICOD,kTrue,kFalse,1) {FIND File,Field,Value, Exact,Search,Limit}
+   End If
+   Redraw windows (All windows)
+End If
+
+61 ~Precios
+-----------------
+If #CLICK
+   Calculate #S3 as 'MINV60'
+   Call procedure INICIO/30 {Accesos}
+   If CIAALIAS='FERREKUPER'
+       Open window (Use v1 coordinates) EINV#43B
+   Else
+       Open window (Use v1 coordinates) EINV#43
+   End If
+End If
+
+62 ~[pick(CIAALIAS='TELYBOR','SKUs','Costos')]
+--------------------------------------------------------------------
+If #CLICK
+   Calculate #S3 as 'EINV#1/64N'
+   Call procedure INICIO/30 {Accesos}
+   If CIAALIAS='BORDTEX'
+       Call procedure MUTILBORRA4/6 {FUSIONA PRODUCTOS}
+       Quit procedure
+   End If
+
+  If (CIAALIAS='TELYBOR')
+      If (CIAGRUPO=0)
+          Open window ECOSTOS3
+      Else
+          Open window ECOSTOS3/0/0/570
+      End If
+  Else
+      Call procedure EINVSKUS/100 {Show}
+  End If
+End If
+
+; !+0027
+
+63 ~Prepacks
+--------------------
+If #CLICK
+   Calculate #S3 as 'MINV93'
+   Call procedure INICIO/30 {Accesos}
+   Open window EINV#58
+End If
+
+64 ^^TITULO1
+--------------------
+
+65 ~Alternos
+------------------
+If #CLICK
+   Calculate #S3 as 'EINV#1-45'
+   Call procedure INICIO/30 {Accesos}
+   Call procedure MINV/30 {CLOSE ALL INV}
+
+  Open window (Use v1 coordinates) EINV#37
+End If
+
+66 ~componentes
+-------------------------
+If #CLICK
+   Calculate #S3 as 'EINV#1/48'
+   Call procedure INICIO/30 {Accesos}
+   Call procedure MINV/30 {CLOSE ALL INV}
+   If CIAALIAS='BABY'
+       If #CTRL&#SHIFT
+          Call procedure WXML/100 {Show} ;; !+0124
+          Quit procedure
+       End If
+   End If
+   If #CTRL
+       Open window (Use v1 coordinates) EINV#56
+       Quit procedure
+   End If
+   If #SHIFT
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026 17:40:22)                                   PAGE 7
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+       Open window EINV#2A ;; PrePacks
+       Quit procedure
+   End If
+   Open window (Use v1 coordinates) EINV#2
+End If
+
+
+; !+0108
+
+67 ~Calidad
+-----------------
+; OMNIS 7 converter inserted if statement
+If #CLICK
+   If (CIAALIAS='MASKOTA')&(#CTRL) ;; TEMPORAL HASTA 2-2-9
+       Call procedure MBASE/74 ('FINV',ISTKACT,0) {EDITA UN FIELD}
+       Redraw windows
+       Quit procedure
+   End If
+   If CIAALIAS='PISOS'
+       Open window EINV2#3A
+       Quit procedure
+   End If
+   If CIAALIAS='PISOS'
+       Open window EINV2#3B
+       Quit procedure
+   End If
+
+  If (CIAHELP=0)
+      Calculate #S3 as 'EINV#1/42'
+      Call procedure INICIO/30 {Accesos}
+      Open window (Use v1 coordinates) EINV#127
+  Else
+      OK message (Large size) {Este boton nos da la ventana para poder consultar en pantalla el Saldo, Auxilir, Ventas o Pedidos dlie cliente}
+  End If
+End If
+
+68 ~implosion
+--------------------
+If #CLICK
+   Calculate #S3 as 'EINV#1/50'
+   Call procedure INICIO/30 {Accesos}
+   Call procedure MINV/30 {CLOSE ALL INV}
+   If #SHIFT
+       Open window (Use v1 coordinates) EINV#11A
+       Quit procedure
+   End If
+   Open window (Use v1 coordinates) EINV#11
+End If
+
+69 ~LOTES
+-----------------
+If #CLICK
+   If (CIAALIAS='BABY')&(#CTRL)
+       Calculate #S3 as 'EINV#1/47X'
+       Call procedure INICIO/30 {Accesos}
+       Open window (Use v1 coordinates) EINVLOTESXXX
+       Quit procedure
+   End If
+
+  If mid(CIAPLUGS,23,1)<>'X'
+     OK message (High position,Large size) {Esta versión no contiene el módulo de LOTES}
+     Quit procedure
+  End If
+  Calculate #S3 as 'EINV#1/47'
+  Call procedure INICIO/30 {Accesos}
+  If mid(CIACOMPORTA,119,1)
+     Open window (Use v1 coordinates) EINV#28L
+  Else
+     Open window (Use v1 coordinates) EINVLOTES
+  End If
+End If
+
+70 ~ueps peps
+---------------------
+If #CLICK
+   If mid(CIAPLUGS,23,1)<>'X'
+       OK message (High position,Large size) {Esta versión no contiene el módulo de LOTES}
+       Quit procedure
+   End If
+   Calculate #S3 as 'EINV#1/52'
+   Call procedure INICIO/30 {Accesos}
+   Open window (Use v1 coordinates) EINV#32
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026 17:40:22)                                   PAGE 8
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+End If
+
+71 ^oferta
+--------------
+
+72 OK
+----------
+
+73 Cancelar
+-----------------
+
+74 IMONEDA6
+---------------------
+
+75 ^TITULO
+-----------------
+
+76 ^FAM1
+---------------
+
+77 ^CODPRV
+-------------------
+
+78 ^VALMACEN0
+-------------------------
+
+79 ^SEGUNDAS
+------------------------
+
+80 ^SEGUNDAS
+------------------------
+
+81 ^FAM1
+---------------
+
+82 ^FAM1
+---------------
+
+83 Foto
+-----------
+
+84 ^SEGUNDAS
+------------------------
+
+85 ^^TITULO1
+--------------------
+
+86 ^^TITULO1
+--------------------
+
+87 ^^TITULO1
+--------------------
+
+88 ^^TITULO1
+--------------------
+
+89 ^^TITULO1
+--------------------
+
+90 ^^TITULO1
+--------------------
+
+91 ^^TITULO1
+--------------------
+
+92 IADVALOREMSEVIMEX
+---------------------------------------
+
+93 IVTA
+------------
+
+94 IDIASSTK
+-------------------
+
+100 EDWC
+----------------
+If #EDATA&#WCLICK
+   SNA remain on current field
+End If
+
+201 Update CyT
+-----------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026 17:40:22)                                   PAGE 9
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Parameter PDES (Boolean)                 ;; Copiar la descripción (más color y talla)
+
+Local variable VRN (Long integer) = 0
+Local variable VPN (Long integer) = 0
+Local variable VCOD (Character 10000000) = '¡¡¡!!!¡¡¡!!!¡¡¡'
+Local variable VL (List)
+Local variable VDES (Character 10000000)
+Local variable VFAM6 (Character 10000000)
+Local variable VLISTA5 (Number 4 dp)
+
+No/Yes message (High position,Sound bell) {¿Actualizar color y talla[pick(PDES,'',' (con descripción)')]?}
+If flag false
+    Quit procedure
+End If
+
+Begin reversible block
+  Disable cancel test at loops
+  Set main file {FINV}
+  Set current list VL
+End reversible block
+
+; ??? OJO: La familia debe ser filtrada.
+Define list (Store long data) {ITIPO..ILISTA5,ILISTA6,IFAM,IVOLUMEN,ICANTCAJA,ILISTA7..ILISTA9,IUM,IEMPAQUE,ILISTA10,IEDIEMP,IEDIEMPC,ICTA,I
+CTADEV,IMONEDA1..IMONEDA10,IDESCR,IFAM1..IFAM7,IFAM8,IFAM9,ILOCALIZ,ISEGUNDAS,IREBAJAMINIMO,IPESOSPARAPUNTO,IDESCGR
+
+Add line to list
+
+
+Call procedure MSQL/266 ('FINV',ICOD,kFalse,kFalse,50) {FIND_FIRST File,Field, Search,Sort,Limit} ;; !+0127
+While flag true
+  Working message (Cancel box,Repeat count) {Actualizando color y talla...}
+  If canceled
+      Break to end of loop
+  End If
+  If ICT=1
+      If len(ICOD)=CIARAIZ
+          Calculate VCOD as ICOD
+          Replace line in list {1}
+          Calculate VRN as VRN+1
+      Else
+          OK message (High position,Large size,Sound bell) {El producto "[ICOD]" tiene la marca de color y talla, pero su código no es raiz.}
+      End If
+  Else If mid(ICOD,1,CIARAIZ)=VCOD
+
+      Calculate LVOTROS as ''
+      Calculate VDES as IDESCR
+      Calculate VFAM6 as IFAM6
+      Calculate VLISTA5 as ILISTA5
+      Load from list {1}
+      Call procedure MBASE/149 ('FINV',LVOTROS,VL) {BUILD VOTROS BASE LISTA} ;; !+0106
+      Call procedure MBASE/67 (LVOTROS,IUSEQ,CIAUSRSEQ) {Arma LVOTROS}
+      Call procedure MBASE/67 (LVOTROS,IFECHACAMBIO,#D) {Arma LVOTROS}
+      Call procedure MBASE/67 (LVOTROS,IFAM6,VFAM6,CIAALIAS='VANITY') {Arma LVOTROS} ;; VANITY SE QUEDA CON EL QUE TENIA
+      Call procedure MBASE/67 (LVOTROS,ILISTA5,VLISTA5,CIAALIAS='MEXIJEANS') {Arma LVOTROS} ;; PARA QUE A MEXIJEANS SE QUEDE EL QUE
+      TENIA Y NO EL DEL PAPA
+
+      If (CIAALIAS='CADER')|(CIAALIAS='KARELE')
+          ; DEJAR EL DEL PAPA
+      Else If PDES
+          Calculate IDESCR as con(IDESCR,' ',mid(ICOD,CIARAIZ+1,CIATALLA),' ',mid(ICOD,CIARAIZ+CIATALLA+1,99))
+          Call procedure MCPAU1/43 (IDESCR) {Str Trailing Spaces-}
+          Call procedure MBASE/67 (LVOTROS,IDESCR,IDESCR) {Arma LVOTROS}
+      Else If CIAALIAS='COLORIE'
+          Call procedure MBASE/67 (LVOTROS,IDESCR,con(IDESCR,' ',ICOLOREXT,' ',mid(ICOD,CIARAIZ+CIATALLA+1,99))) {Arma LVOTROS}
+      Else
+          Call procedure MBASE/67 (LVOTROS,IDESCR,VDES) {Arma LVOTROS}
+      End If
+
+      ; Single file find on UCOD (Exact match) {IUM} ;; Con MBASE no se necesita.
+      Call procedure MBASE/69 ('FINV',LVOTROS) {EDITA UN FILE FILE_UOTROS}
+
+    Calculate VPN as VPN+1
+  End If
+  Call procedure MSQL/271 ('FINV','ICOD',kFalse,kFalse) {NEXT File FieldN,Exact,Search}                                            ;; !+0127
+End While
+Close working message
+
+OK message (High position,Large size) {Productos raiz: [VRN]//Productos actualizados: [VPN]}
+
+Call procedure MINV/500 {INICIALIZA EL MODULO}
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026PAGE                                         17:40:22)
+                                                                                                                                10
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+; !+0025 !+0008 !+0124
+
+202 Update CyT SOLO ESE PRODUCTO
+----------------------------------------------------------
+
+
+Local variable VRN (Long integer) = 0
+Local variable VPN (Long integer) = 0
+Local variable VCOD (Character 10000000) = ICOD
+Local variable VL (List)
+Local variable VDES (Character 10000000)
+Local variable VEAN (Boolean)
+Local variable VFAM6 (Character 10000000)
+Local variable VLISTA5 (Number 4 dp)
+Local variable VUCOD (Character 10000000)
+Local variable VDIGITO (Character 10000000)
+Local variable VDATO (Character 10000000)
+
+If (CIAALIAS='PARLAY')&(IEAN='X')
+    Call procedure MSQL/251 ('FTIPMV',TICLA,'EA',kTrue) {SINGLE_FILE_FIND File,Field,Value Exact}
+    Calculate VEAN as #F
+End If
+
+Calculate VCOD as ICOD
+Calculate MEMIDEL as ICOD
+Calculate MEMIAL as con(ICOD,'zzz')
+Begin reversible block
+  Disable cancel test at loops
+  Set main file {FINV}
+  Set current list VL
+End reversible block
+
+Call procedure MSQL/51 (sys(85),'FINV') {Push CRB}
+
+; ??? OJO: La familia debe ser filtrada.
+Call procedure MSQL/281 ("(ICOD>=MEMIDEL)&(ICOD<=MEMIAL)&(MEMIDEL>'')") {SET_SEARCH_AS_CALCULATION Calc, SQL_IINF}
+Call procedure MSQL/261 ('FINV',ICOD,VCOD,kFalse,kTrue,50) {FIND File,Field,Value, Exact,Search,Limit}
+If flag false
+    Quit procedure
+End If
+If (CIAALIAS='UMBRO')|(CIAALIAS='ANFIS')
+    Define list (Store long data) {ITIPO..ILISTA3,ILISTA6,IFAM,IVOLUMEN,ICANTCAJA,ILISTA7..ILISTA9,IUM,IEMPAQUE,ILISTA10,IEDIEMP,IEDIEMPC,ICTA,I
+    CTADEV,IMONEDA1..IMONEDA10,IDESCR,IFAM1..IFAM7,IFAM8,IFAM9,ILOCALIZ,ISEGUNDAS,IREBAJAMINIMO,IPESOSPARAPUNTO,IDESCGR
+Else If CIAALIAS='ALDO'
+    Define list (Store long data) {ITIPO..ILISTA5,ILISTA6,IFAM,IVOLUMEN,ICANTCAJA,ILISTA7..ILISTA9,IUM,IEMPAQUE,ILISTA10,IEDIEMP,IEDIEMPC,ICTA,I
+    CTADEV,IMONEDA1..IMONEDA10,IDESCR,IFAM1..IFAM7,IFAM8,IFAM9,ILOCALIZ,ISEGUNDAS,IREBAJAMINIMO,IPESOSPARAPUNTO,IDESCGR
+Else
+    Define list (Store long data) {ITIPO..ILISTA5,ILISTA6,IFAM,IVOLUMEN,ICANTCAJA,ILISTA7..ILISTA9,IUM,IEMPAQUE,ILISTA10,IEDIEMP,IEDIEMPC,ICTA,I
+    CTADEV,IMONEDA1..IMONEDA10,IDESCR,IFAM1..IFAM7,IFAM8,IFAM9,ILOCALIZ,ISEGUNDAS,IREBAJAMINIMO,IPESOSPARAPUNTO,IDESCGR
+End If
+
+Add line to list
+
+Repeat
+  Working message (Cancel box,Repeat count) {Actualizando color y talla...}
+  If canceled
+      Break to end of loop
+  End If
+  If ICT=1
+      If len(ICOD)=CIARAIZ
+          Calculate VCOD as ICOD
+          Replace line in list {1}
+          Calculate VRN as VRN+1
+      Else
+          OK message (High position,Large size,Sound bell) {El producto "[ICOD]" tiene la marca de color y talla, pero su código no es raiz.}
+      End If
+  Else If mid(ICOD,1,CIARAIZ)=VCOD
+
+      Calculate LVOTROS as ''
+      Calculate VFAM6 as IFAM6
+      Calculate VDES as IDESCR
+      Calculate VLISTA5 as ILISTA5
+      Load from list {1}
+      Call procedure MBASE/149 ('FINV',LVOTROS,VL) {BUILD VOTROS BASE LISTA}
+
+      If (CIAALIAS='CADER')|(CIAALIAS='KARELE')
+          ; OK message {[ICOD] [IDESCR]}
+      Else If CIAALIAS='COLORIE'
+          Calculate IDESCR as con(IDESCR,' ',ICOLOREXT,' ',mid(ICOD,CIARAIZ+CIATALLA+1,99))
+      Else
+          Calculate IDESCR as con(IDESCR,' ',mid(ICOD,CIARAIZ+1,CIATALLA),' ',mid(ICOD,CIARAIZ+CIATALLA+1,99))
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026PAGE                                         17:40:22)
+                                                                                                                                11
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+       End If
+
+      Call procedure MCPAU1/43 (IDESCR) {Str Trailing Spaces-}
+      Call procedure MBASE/67 (LVOTROS,IDESCR,IDESCR) {Arma LVOTROS}
+
+      Call procedure MBASE/67 (LVOTROS,IUSEQ,CIAUSRSEQ) {Arma LVOTROS}
+      Call procedure MBASE/67 (LVOTROS,IFECHACAMBIO,#D) {Arma LVOTROS}
+      Call procedure MBASE/67 (LVOTROS,IFAM6,pick(CIAALIAS='VANITY',IFAM6,VFAM6)) {Arma LVOTROS}
+      Call procedure MBASE/67 (LVOTROS,ILISTA5,pick(CIAALIAS='MEXIJEANS',ILISTA5,VLISTA5)) {Arma LVOTROS}
+      Call procedure MBASE/67 (LVOTROS,IDESCR,IDESCR) {Arma LVOTROS}
+
+      Call procedure MSQL/251 ('FUNIDAD',UCOD,IUM,kTrue) {SINGLE_FILE_FIND File,Field,Value Exact}
+      Call procedure MBASE/67 (LVOTROS,USEQ,USEQ,1,'C') {Arma LVOTROS}
+
+      Call procedure MBASE/69 ('FINV',LVOTROS) {EDITA UN FILE FILE_UOTROS}
+      If VEAN&(IEAN='')
+         Call procedure MBASE/29 {AUMENTA EN 1 TINUM}
+         Calculate LVOTROS as ''
+         Calculate VDATO as jst(TIDESCR,7,TINUM,'-5P0') ;; EL TIDESCR ES EL FIJO Y ASUMO QUE SON 7 DIGITOS
+         Calculate VDIGITO as VDATO
+         Calculate VDIGITO as 10-mid(1000+(mid(VDIGITO,1,1)+mid(VDIGITO,3,1)+mid(VDIGITO,5,1)+mid(VDIGITO,7,1)+mid(VDIGITO,9,1)+mid(VDIGITO
+         ,11,1))*1+((mid(VDIGITO,2,1)+mid(VDIGITO,4,1)+mid(VDIGITO,6,1)+mid(VDIGITO,8,1)+mid(VDIGITO,10,1)+mid(VDIGITO,12,1))*3),4,1)
+         Calculate VDIGITO as pick(VDIGITO=10,VDIGITO,0)
+
+        Call procedure MBASE/67 (LVOTROS,IEAN,con(VDATO,VDIGITO)) {Arma LVOTROS}
+        Call procedure MBASE/69 ('FINV',LVOTROS) {EDITA UN FILE FILE_UOTROS}
+      End If
+
+      Calculate VPN as VPN+1
+  End If
+  Call procedure MSQL/271 ('FINV','ICOD',kFalse,kTrue) {NEXT File FieldN,Exact,Search}
+Until flag false
+Close working message
+
+Call procedure MSQL/52 (sys(85)) {Pop CRB}
+Call procedure MSQL/256 ('FINV') {LOAD_CONNECTED_RECORDS File}                                            ;; POR SI CAMBIO LA U.M.
+Clear selected files {FTIPMV}
+
+OK message (High position,Large size) {Productos raiz: [VRN]//Productos actualizados: [VPN]}
+
+
+; !+0025 !+0008 !+0124
+
+205 Update CyT SOLO PRECIOS
+-----------------------------------------------
+
+; PARA QUE SOLO SE COPIEN PRECIOS DE PAPAS A HIJOS VALIDANDO FECHAS PARA ARCHIVO DE TRANSFER
+
+Local variable VRN (Long integer) = 0
+Local variable VPN (Long integer) = 0
+Local variable VCOD (Character 10000000) = '¡¡¡!!!¡¡¡!!!¡¡¡'
+Local variable VL (List)
+Local variable VDES (Character 10000000)
+Local variable VFAM6 (Character 10000000)
+Local variable VPRECIO1 (Number 4 dp)
+Local variable VPRECIO7 (Number 4 dp)
+Local variable VPRECIO8 (Number 4 dp)
+Local variable VPRECIO10 (Number 4 dp)
+
+No/Yes message (High position,Sound bell) {¿Actualizar precios de color y talla?}
+If flag false
+    Quit procedure
+End If
+
+Begin reversible block
+  Disable cancel test at loops
+  Set main file {FINV}
+  Set current list VL
+End reversible block
+
+; ??? OJO: La familia debe ser filtrada.
+Define list (Store long data) {ITIPO..ILISTA5,ILISTA6,IFAM,IVOLUMEN,ICANTCAJA,ILISTA7..ILISTA9,IUM,IEMPAQUE,ILISTA10,IEDIEMP,IEDIEMPC,ICTA,I
+CTADEV,IMONEDA1..IMONEDA10,IDESCR,IFAM1..IFAM7,IFAM8,IFAM9,ILOCALIZ,ISEGUNDAS,IREBAJAMINIMO,IPESOSPARAPUNTO,IDESCGR
+
+Add line to list
+
+Call procedure MSQL/266 ('FINV',ICOD,kFalse,kFalse,50) {FIND_FIRST File,Field, Search,Sort,Limit}                                               ;; !+0127
+While flag true
+  Working message (Cancel box,Repeat count) {Actualizando color y talla...}
+  If canceled
+      Break to end of loop
+  End If
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026PAGE                                         17:40:22)
+                                                                                                                                12
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   If ICT=1
+       If len(ICOD)=CIARAIZ
+           Calculate VPRECIO1 as ILISTA1
+           Calculate VPRECIO7 as ILISTA7
+           Calculate VPRECIO8 as ILISTA8
+           Calculate VPRECIO10 as ILISTA10
+           Calculate VCOD as ICOD
+           Replace line in list {1}
+           Calculate VRN as VRN+1
+       Else
+           OK message (High position,Large size,Sound bell) {El producto "[ICOD]" tiene la marca de color y talla, pero su código no es raiz.}
+       End If
+   Else If mid(ICOD,1,CIARAIZ)=VCOD
+       If (ILISTA1<>VPRECIO1)|(ILISTA7<>VPRECIO7)|(ILISTA8<>VPRECIO8)|(ILISTA10<>VPRECIO10)
+           Calculate LVOTROS as ''
+           Call procedure MBASE/67 (LVOTROS,ILISTA1,VPRECIO1) {Arma LVOTROS}
+           Call procedure MBASE/67 (LVOTROS,ILISTA7,VPRECIO7) {Arma LVOTROS}
+           Call procedure MBASE/67 (LVOTROS,ILISTA8,VPRECIO8) {Arma LVOTROS}
+           Call procedure MBASE/67 (LVOTROS,ILISTA10,VPRECIO10) {Arma LVOTROS}
+           Call procedure MBASE/67 (LVOTROS,IUSEQ,CIAUSRSEQ) {Arma LVOTROS}
+           Call procedure MBASE/67 (LVOTROS,IFECHACAMBIO,#D) {Arma LVOTROS}
+           Call procedure MBASE/67 (LVOTROS,IFECHACAMBIOPR,#D) {Arma LVOTROS}
+           Call procedure MBASE/69 ('FINV',LVOTROS) {EDITA UN FILE FILE_UOTROS}
+           Calculate VPN as VPN+1
+       End If
+   End If
+   Call procedure MSQL/271 ('FINV','ICOD',kFalse,kFalse) {NEXT File FieldN,Exact,Search} ;; !+0127
+End While
+Close working message
+
+OK message (High position,Large size) {Productos raiz: [VRN]//Productos actualizados: [VPN]}
+
+Call procedure MINV/500 {INICIALIZA EL MODULO}
+
+
+; !+0025 !+0008 !+0124
+
+239 SEARCH LISTA
+-----------------------------
+
+Call procedure MCPAV01/162 ('EINV#1','FINV') {SHOW BUTTONS Win File}                                          ;; !+0121
+
+Begin reversible block
+    Set current list LIBLISTA
+    Clear search format
+    Call procedure MSQL/281 ("UCOD=IUM") {SET_SEARCH_AS_CALCULATION Calc, SQL_IINF}
+End reversible block
+Search list (From start)
+If flag false
+    Calculate #L as 0
+End If
+Redraw windows
+
+240 LOAD LISTA
+------------------------
+Begin reversible block
+   Set current list LIBLISTA
+   Set main file {FUNIDAD}
+   ; Set search as calculation {(DEST=CIAKYT)&(DESCXC=1)}
+End reversible block
+; If flag false
+; Clear list
+; Quit procedure
+; End If
+Define list {UCOD,UDESCR}
+Clear list
+Call procedure MSQL/276 ('FUNIDAD',UCOD,kFalse,kFalse,0) {BUILD_LIST_FROM_FILE File,Field, Exact,Search,Limit}
+Calculate #L as 1
+
+245 LOAD ALM 01
+--------------------------
+If (CIAALIAS<>'CORAL')&(CIAALIAS<>'PISOS')
+    Quit procedure
+End If
+Format variable VALMACEN0 (Short number 2 dp)
+Call procedure MSQL/251 ('FALM',ALMKEY,jst(ICOD,13,'01',0),kTrue) {SINGLE_FILE_FIND File,Field,Value Exact}
+Calculate VALMACEN0 as ALMCANT ;; #F
+Redraw windows (All windows)
+Clear selected files {FALM}
+
+300 ALTA INV SERVICIOS
+--------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Procedures for PROSCAI_GERMAN - PRUEBAS.EINV#1 as at 14/04/2026 (14/04/2026PAGE                                         17:40:22)
+                                                                                                                                13
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Begin reversible block
+   Set main file {FALMCAT}
+   Define list {CATALM}
+   Clear search format
+   Call procedure MSQL/281 ("CATTIPO=''") {SET_SEARCH_AS_CALCULATION Calc, SQL_IINF}
+End reversible block
+Call procedure MSQL/276 ('FALMCAT',CATALM,kFalse,kTrue,0) {BUILD_LIST_FROM_FILE File,Field, Exact,Search,Limit}
+Set main file {FALM}
+For each line in list from 1 to #LN step 1
+   Load from list
+   Calculate MEMALM as CATALM
+   Call procedure MBASE/52 {VALIDA ALM MEMALM DE ICOD}
+   Call procedure MBASE/74 ('FALM',ALMCANT,10000) {EDITA UN FIELD} ;; PARA QUE SE PUEDA ASIGNAR, ELLOS SABEN QUE ESTE MOVIMIENTO NO
+   GENER UNA TRANSACCION
+   Call procedure MBASE/74 ('FINV',ISTKACT,ALMCANT,1,'+') {EDITA UN FIELD}
+   Clear selected files {FALM,FALMCAT}
+End For
+Redraw windows (All windows)
+
+Local variable VLISTA (List)
+
+No procedure errors found
+
